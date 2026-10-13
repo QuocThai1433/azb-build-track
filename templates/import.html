@@ -1,0 +1,46 @@
+{% extends 'base.html' %}{% block content %}<div class="page-heading"><div class="eyebrow">DỮ LIỆU ĐẦU VÀO</div><h1>Nhập dữ liệu Excel</h1><p class="page-subtitle">Mỗi file kế hoạch có thể thành một dự án mới, hoặc cập nhật dự án đang mở.</p></div>
+<div class="import-grid"><section class="panel import-panel"><div class="import-icon">⇧</div><h3>Nạp file kế hoạch (.xlsx)</h3><p>Ứng dụng nhận cấu trúc file AZB có các sheet như <b>TongQuan</b>, <b>TienDo</b>, <b>ChiPhi</b>, <b>RuiRo</b>, <b>NguonLuc</b>, <b>BienPhap</b> và <b>HSSE</b>.</p><form method="post" enctype="multipart/form-data" class="upload-form"><label class="file-drop" for="workbook"><span class="file-drop-icon">▧</span><strong id="fileName">Chọn file Excel từ máy tính</strong><small>Định dạng .xlsx · tối đa 20 MB</small><input id="workbook" name="workbook" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></label>
+<fieldset class="backup-choice">
+  <legend>Nhập vào đâu?</legend>
+  <div class="backup-cards">
+    <label class="backup-card backup-card-safe">
+      <input type="radio" name="mode" value="new" checked>
+      <span class="backup-card-body"><span class="backup-card-mark" aria-hidden="true"></span><strong>Tạo dự án mới</strong></span>
+    </label>
+    <label class="backup-card backup-card-safe">
+      <input type="radio" name="mode" value="update">
+      <span class="backup-card-body"><span class="backup-card-mark" aria-hidden="true"></span><strong>Cập nhật dự án này</strong></span>
+    </label>
+  </div>
+  <div class="project-name-field" id="projectNameField">
+    <label for="projectName">Tên dự án mới <small>(để trống = lấy tên ghi trong file; bắt buộc nếu file không có tên)</small></label>
+    <input id="projectName" name="project_name" type="text" maxlength="200" autocomplete="off" placeholder="Ví dụ: Kho logistics Bình Dương">
+  </div>
+</fieldset>
+<fieldset class="backup-choice">
+  <legend>Sao lưu trước khi nhập?</legend>
+  <div class="backup-cards">
+    <label class="backup-card backup-card-safe">
+      <input type="radio" name="backup" value="yes" checked>
+      <span class="backup-card-body"><span class="backup-card-mark" aria-hidden="true"></span><strong>Sao lưu dự án</strong></span>
+    </label>
+    <label class="backup-card backup-card-risk">
+      <input type="radio" name="backup" value="no">
+      <span class="backup-card-body"><span class="backup-card-mark" aria-hidden="true"></span><strong>Không sao lưu</strong></span>
+    </label>
+  </div>
+</fieldset>
+<button id="importSubmit" class="btn btn-primary btn-full" type="submit">→ &nbsp; Tiếp tục: xem trước dữ liệu</button></form>
+<script>
+(function () {
+  function checked(name) { var el = document.querySelector('input[name="' + name + '"]:checked'); return el ? el.value : ''; }
+  function refresh() { document.getElementById('projectNameField').hidden = checked('mode') === 'update'; }
+  document.querySelectorAll('input[name="mode"]').forEach(function (radio) { radio.addEventListener('change', refresh); });
+  refresh();
+})();
+</script><div class="inline-note"><span>ⓘ</span> Bước tiếp theo là <b>xem trước</b>: bạn kiểm tra app đọc file đúng chưa và sửa cách ghép cột nếu cần. Chưa có gì được ghi trước khi bạn bấm Nhập.</div></section>
+<section class="panel import-side"><div class="panel-head"><div><h3>Dữ liệu dự án đang mở</h3><p>{{ project.name if project else '' }}</p></div><span class="tag tag-teal">LOCAL DB</span></div><div class="import-counts"><div><span class="count-icon blue">☷</span><div><strong>{{ counts.tasks }}</strong><small>Công việc WBS</small></div></div><div><span class="count-icon green">♙</span><div><strong>{{ counts.resources }}</strong><small>Nguồn lực</small></div></div><div><span class="count-icon amber">＄</span><div><strong>{{ counts.costs }}</strong><small>Khoản chi</small></div></div><div><span class="count-icon red">△</span><div><strong>{{ counts.risks }}</strong><small>Rủi ro / kiến nghị</small></div></div></div><div class="import-warning"><strong>Trước khi nhập Excel</strong><p>Mặc định file tải lên thành <b>một dự án mới</b>, các dự án đang có giữ nguyên. Chỉ chọn <b>Cập nhật dự án này</b> khi file là phiên bản mới của chính dự án đang mở.</p><a class="btn btn-outline btn-full" href="{{ url_for('reports') }}">↧ &nbsp; Tải báo cáo Excel</a>
+{% if aliases %}<div class="backup-list"><strong>Lựa chọn đã ghi nhớ ({{ aliases|length }})</strong><ul>{% for a in aliases %}<li><span><code>{{ a.text_shown or a.text_norm }}</code> <small>{{ 'sheet' if a.kind == 'sheet' else 'cột' }} → {{ a.entity }}{% if a.kind == 'column' %} / {{ a.field or 'bỏ qua' }}{% endif %}</small></span><form method="post" action="{{ url_for('import_alias_delete', alias_id=a.id) }}"><button class="btn btn-outline btn-sm" type="submit">Bỏ</button></form></li>{% endfor %}</ul><small>Các lựa chọn này được dùng tự động cho file sau có cùng tên cột.</small></div>{% endif %}
+{% if backups %}<div class="backup-list"><strong>Bản sao lưu gần đây</strong><ul>{% for b in backups %}<li><code>{{ b.name }}</code><small>{{ b.time }} · {{ b.size_mb }} MB</small></li>{% endfor %}</ul><small>Khôi phục: tắt ứng dụng, chép file muốn dùng về <code>instance/project_manager.db</code>.</small></div>{% endif %}</div></section></div>
+<div class="panel source-file-card"><div class="source-file-icon">XLS</div><div><strong>File nguồn của dự án đang mở</strong><p>{{ (project.source_file if project else None) or 'Chưa có' }}</p><small>File Excel đã dùng để tạo hoặc cập nhật dự án này lần gần nhất.</small></div><span class="tag">EXCEL</span></div>
+{% endblock %}

@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sơ đồ AZB Project Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: một cột đọc. Thanh tab ở trên. Tab Bức tranh chung = 3 sơ đồ. Mỗi tab tính năng = mục đích, luồng, logic, output, khái niệm, vị trí code. */
+:root {
+  --bg: #F3F5F4; --surface: #FFFFFF; --ink: #1C2430; --muted: #5D6875; --line: #C6CDD3;
+  --accent: #D9661A; --accent-soft: #FBE7D7;
+  --steel: #1F6F8B; --steel-soft: #DCEDF3;
+  --font-body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #13171C; --surface: #1C2229; --ink: #E6EAEE; --muted: #9AA5B1; --line: #3A444F;
+  --accent: #F28A3A; --accent-soft: #3A2516; --steel: #63B6D2; --steel-soft: #15303A; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #13171C; --surface: #1C2229; --ink: #E6EAEE; --muted: #9AA5B1; --line: #3A444F;
+  --accent: #F28A3A; --accent-soft: #3A2516; --steel: #63B6D2; --steel-soft: #15303A; color-scheme: dark; }
+
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.65; }
+.wrap { max-width: 1000px; margin: 0 auto; padding-inline: 20px; padding-block: 36px 72px; display: grid; gap: 28px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+h1 { font-size: clamp(26px, 5vw, 40px); line-height: 1.15; margin: 0; text-wrap: balance; font-weight: 700; }
+h2 { font-size: 22px; line-height: 1.3; margin: 0; text-wrap: balance; font-weight: 700; }
+h3 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.lead { max-width: 68ch; color: var(--muted); margin: 0; font-size: 17px; }
+p { margin: 0; max-width: 70ch; }
+code { font-family: var(--font-mono); font-size: .86em; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; overflow-wrap: anywhere; }
+
+/* tabs */
+.tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.tab { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; font-size: 14.5px; padding: 10px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; cursor: pointer; }
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+.panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+
+/* feature panel */
+.fhead { display: grid; gap: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--font-mono); font-size: 12.5px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+.chip b { color: var(--accent); font-weight: 500; margin-right: 6px; }
+.chip.db { border-color: var(--steel); color: var(--steel); }
+.legend { font-size: 13.5px; color: var(--muted); }
+.flowstrip { display: flex; flex-wrap: wrap; gap: 10px 30px; list-style: none; padding: 0; margin: 0; counter-reset: s; }
+.flowstrip li { counter-increment: s; position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 14px; max-width: 230px; min-width: 0; }
+.flowstrip li::before { content: counter(s); font-family: var(--font-mono); color: var(--accent); margin-right: 8px; font-weight: 500; }
+.flowstrip li:not(:last-child)::after { content: "→"; position: absolute; right: -23px; top: 50%; transform: translateY(-50%); color: var(--accent); font-weight: 700; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 760px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; }
+ol.logic, ul.out { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.sub { font-weight: 600; font-size: 14px; margin-top: 6px; color: var(--steel); }
+.codemap { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; font-size: 14.5px; }
+.codemap dt { font-family: var(--font-mono); font-size: 13px; padding-top: 1px; overflow-wrap: anywhere; }
+.codemap dd { margin: 0; }
+@media (max-width: 560px) { .codemap { grid-template-columns: minmax(0, 1fr); gap: 0; } .codemap dd { margin-bottom: 8px; } }
+.watch { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; max-width: 72ch; }
+.watch b { color: var(--accent); }
+
+/* overview */
+section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+figure { min-width: 0; margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.scroll { overflow-x: auto; padding: 18px 16px 6px; }
+figure svg { display: block; width: 100%; min-width: 720px; height: auto; color: var(--ink); font-family: var(--font-body); }
+figcaption { padding: 4px 20px 16px; color: var(--muted); font-size: 14px; }
+.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+dl.gloss { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 20px; margin: 0; max-width: 80ch; }
+dl.gloss dt { font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+dl.gloss dd { margin: 0; }
+@media (max-width: 560px) { dl.gloss { grid-template-columns: minmax(0, 1fr); gap: 2px; } dl.gloss dd { margin-bottom: 10px; } }
+
+/* svg classes */
+.n { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.nh { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.8; }
+.ns { fill: var(--steel-soft); stroke: var(--steel); stroke-width: 1.5; }
+.t { fill: var(--ink); font-size: 14px; font-weight: 600; }
+.ts { fill: var(--muted); font-size: 12px; }
+.tm { fill: var(--muted); font-size: 12px; font-family: var(--font-mono); }
+.tl { fill: var(--ink); font-size: 12px; }
+.tla { fill: var(--accent); font-size: 12px; font-weight: 600; }
+.e { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+.ea { stroke: var(--accent); stroke-width: 2; fill: none; }
+.ed { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+.life { stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 4 5; }
+.fi { fill: var(--ink); } .fa { fill: var(--accent); } .fm { fill: var(--muted); }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">AZB Project Hub · FastAPI + SQLAlchemy</div>
+  <h1>Dự án hoạt động như thế nào?</h1>
+  <p class="lead">Trang này giải thích mã nguồn cho người mới vào nghề. Hãy đọc tab <b>Bức tranh chung</b> trước, rồi mở lần lượt từng tab tính năng. Mỗi tab tính năng trả lời ba câu hỏi: tính năng này để làm gì, nó chạy ra sao, và nó cho ra kết quả gì. Các thuật ngữ khó đều có giải thích ngay trong tab.</p>
+</header>
+
+<div class="tabs" role="tablist" aria-label="Các tính năng của dự án" id="tabs"></div>
+
+<!-- ============ BỨC TRANH CHUNG ============ -->
+<div class="panel" role="tabpanel" id="panel-overview" aria-labelledby="tab-overview">
+
+<section>
+  <h2>1. Các tầng của ứng dụng</h2>
+  <p>Ứng dụng chia thành nhiều tầng. Mỗi tầng chỉ làm một việc và chỉ nói chuyện với tầng kế bên. Yêu cầu đi từ trái sang phải. Kết quả đi ngược lại từ phải sang trái.</p>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 900 340" role="img" aria-label="Trình duyệt gửi yêu cầu cho router, router gọi repository, repository dùng model SQLAlchemy, model đọc ghi file SQLite. Templates, schemas, services, dữ liệu mẫu và migrations hỗ trợ các tầng này.">
+      <defs>
+        <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fi"/></marker>
+        <marker id="m1m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fm"/></marker>
+      </defs>
+      <rect class="n" x="20" y="30" width="140" height="90" rx="10"/>
+      <text class="t" x="90" y="62" text-anchor="middle">Trình duyệt</text>
+      <text class="ts" x="90" y="82" text-anchor="middle">người dùng</text>
+      <text class="ts" x="90" y="100" text-anchor="middle">bấm và gõ</text>
+
+      <rect class="nh" x="200" y="30" width="140" height="90" rx="10"/>
+      <text class="t" x="270" y="62" text-anchor="middle">Router</text>
+      <text class="tm" x="270" y="82" text-anchor="middle">routers/*.py</text>
+      <text class="ts" x="270" y="100" text-anchor="middle">không viết SQL</text>
+
+      <rect class="nh" x="380" y="30" width="140" height="90" rx="10"/>
+      <text class="t" x="450" y="62" text-anchor="middle">Repository</text>
+      <text class="tm" x="450" y="82" text-anchor="middle">repositories.py</text>
+      <text class="ts" x="450" y="100" text-anchor="middle">mọi truy vấn ở đây</text>
+
+      <rect class="n" x="560" y="30" width="140" height="90" rx="10"/>
+      <text class="t" x="630" y="62" text-anchor="middle">Models</text>
+      <text class="tm" x="630" y="82" text-anchor="middle">models.py</text>
+      <text class="ts" x="630" y="100" text-anchor="middle">SQLAlchemy ORM</text>
+
+      <rect class="ns" x="740" y="30" width="140" height="90" rx="10"/>
+      <text class="t" x="810" y="62" text-anchor="middle">File SQLite</text>
+      <text class="tm" x="810" y="82" text-anchor="middle">project_manager.db</text>
+      <text class="ts" x="810" y="100" text-anchor="middle">8 bảng dữ liệu</text>
+
+      <line class="e" x1="162" y1="55" x2="198" y2="55" marker-end="url(#m1)"/>
+      <line class="e" x1="198" y1="95" x2="162" y2="95" marker-end="url(#m1)"/>
+      <line class="e" x1="342" y1="55" x2="378" y2="55" marker-end="url(#m1)"/>
+      <line class="e" x1="378" y1="95" x2="342" y2="95" marker-end="url(#m1)"/>
+      <line class="e" x1="522" y1="75" x2="558" y2="75" marker-end="url(#m1)"/>
+      <line class="e" x1="702" y1="75" x2="738" y2="75" marker-end="url(#m1)"/>
+      <text class="tl" x="180" y="22" text-anchor="middle">yêu cầu</text>
+      <text class="tl" x="360" y="22" text-anchor="middle">gọi hàm</text>
+      <text class="tl" x="540" y="22" text-anchor="middle">Session</text>
+      <text class="tl" x="720" y="22" text-anchor="middle">SQL</text>
+      <text class="ts" x="180" y="116" text-anchor="middle">HTML</text>
+      <text class="ts" x="360" y="116" text-anchor="middle">đối tượng</text>
+
+      <rect class="n" x="20" y="220" width="140" height="80" rx="10"/>
+      <text class="t" x="90" y="250" text-anchor="middle">Templates</text>
+      <text class="tm" x="90" y="270" text-anchor="middle">templates/*.html</text>
+      <text class="ts" x="90" y="288" text-anchor="middle">Jinja2</text>
+
+      <rect class="n" x="200" y="220" width="140" height="80" rx="10"/>
+      <text class="t" x="270" y="250" text-anchor="middle">Schemas</text>
+      <text class="tm" x="270" y="270" text-anchor="middle">schemas.py</text>
+      <text class="ts" x="270" y="288" text-anchor="middle">đọc dữ liệu form</text>
+
+      <rect class="n" x="380" y="220" width="140" height="80" rx="10"/>
+      <text class="t" x="450" y="250" text-anchor="middle">Services</text>
+      <text class="tm" x="450" y="270" text-anchor="middle">services/*.py</text>
+      <text class="ts" x="450" y="288" text-anchor="middle">thống kê, Excel</text>
+
+      <rect class="n" x="560" y="220" width="140" height="80" rx="10"/>
+      <text class="t" x="630" y="250" text-anchor="middle">Dữ liệu mẫu</text>
+      <text class="tm" x="630" y="270" text-anchor="middle">seed_data.json</text>
+      <text class="ts" x="630" y="288" text-anchor="middle">chỉ lần chạy đầu</text>
+
+      <rect class="n" x="740" y="220" width="140" height="80" rx="10"/>
+      <text class="t" x="810" y="250" text-anchor="middle">Migrations</text>
+      <text class="tm" x="810" y="270" text-anchor="middle">migrations/</text>
+      <text class="ts" x="810" y="288" text-anchor="middle">Alembic</text>
+
+      <line class="e" x1="215" y1="122" x2="120" y2="218" marker-end="url(#m1)"/>
+      <text class="ts" x="120" y="172" text-anchor="end">điền vào trang</text>
+      <line class="e" x1="270" y1="218" x2="270" y2="122" marker-end="url(#m1)"/>
+      <text class="ts" x="278" y="172">kiểm tra form</text>
+      <line class="e" x1="450" y1="218" x2="450" y2="122" marker-end="url(#m1)"/>
+      <text class="ts" x="458" y="172">lấy dữ liệu</text>
+      <line class="ed" x1="630" y1="218" x2="630" y2="122" marker-end="url(#m1m)"/>
+      <text class="ts" x="638" y="172">nạp dòng mẫu</text>
+      <line class="ed" x1="810" y1="218" x2="810" y2="122" marker-end="url(#m1m)"/>
+      <text class="ts" x="818" y="172">tạo bảng</text>
+    </svg>
+    </div>
+    <figcaption>Mũi tên liền chạy ở mọi yêu cầu. Mũi tên đứt chỉ chạy lúc khởi động. Router không bao giờ viết SQL. Chỉ repository mới nói chuyện với database.</figcaption>
+  </figure>
+  <div class="box"><h3>Giải thích nhanh</h3>
+    <dl class="gloss">
+      <dt>Request / Response</dt><dd>Request (yêu cầu) là thứ trình duyệt gửi lên: “cho tôi trang /tasks”. Response (phản hồi) là thứ máy chủ trả về, thường là một trang HTML.</dd>
+      <dt>ORM</dt><dd>Object-Relational Mapping. Kỹ thuật cho phép bạn làm việc với một dòng trong bảng như làm việc với một đối tượng Python, thay vì viết câu lệnh SQL thủ công.</dd>
+      <dt>Tại sao chia tầng?</dt><dd>Khi cần đổi cách lưu dữ liệu, bạn chỉ sửa một tầng. Các tầng còn lại không bị ảnh hưởng. Code cũng dễ đọc và dễ test hơn.</dd>
+    </dl>
+  </div>
+</section>
+
+<section>
+  <h2>2. Điều gì xảy ra lúc khởi động?</h2>
+  <p>Bạn chạy <code>python app.py</code>. Trước khi nhận yêu cầu đầu tiên, ứng dụng chuẩn bị database.</p>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 900 360" role="img" aria-label="Khởi động: start.bat chạy app.py, uvicorn khởi động, run_migrations kiểm tra database. Database cũ của Flask được đóng dấu phiên bản 0001. Database mới được tạo bảng. Sau đó seed_if_empty nạp dữ liệu mẫu nếu chưa có dự án. Cuối cùng ứng dụng sẵn sàng.">
+      <defs>
+        <marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fi"/></marker>
+      </defs>
+      <rect class="n" x="20" y="20" width="190" height="64" rx="10"/>
+      <text class="t" x="115" y="48" text-anchor="middle">start.bat</text>
+      <text class="ts" x="115" y="68" text-anchor="middle">hoặc: python app.py</text>
+      <rect class="n" x="230" y="20" width="190" height="64" rx="10"/>
+      <text class="t" x="325" y="48" text-anchor="middle">app.py</text>
+      <text class="ts" x="325" y="68" text-anchor="middle">gọi uvicorn.run()</text>
+      <rect class="n" x="440" y="20" width="190" height="64" rx="10"/>
+      <text class="t" x="535" y="48" text-anchor="middle">lifespan khởi động</text>
+      <text class="tm" x="535" y="68" text-anchor="middle">azb_hub/main.py</text>
+      <rect class="nh" x="650" y="20" width="230" height="64" rx="10"/>
+      <text class="t" x="765" y="48" text-anchor="middle">run_migrations()</text>
+      <text class="ts" x="765" y="68" text-anchor="middle">file .db đang có gì?</text>
+      <line class="e" x1="212" y1="52" x2="228" y2="52" marker-end="url(#m2)"/>
+      <line class="e" x1="422" y1="52" x2="438" y2="52" marker-end="url(#m2)"/>
+      <line class="e" x1="632" y1="52" x2="648" y2="52" marker-end="url(#m2)"/>
+
+      <path class="e" d="M765,86 V112 H495 V136" marker-end="url(#m2)"/>
+      <path class="e" d="M765,112 H765 V136" marker-end="url(#m2)"/>
+      <text class="tla" x="480" y="106" text-anchor="end">có bảng, chưa có version</text>
+      <text class="tla" x="780" y="106">file trống</text>
+
+      <rect class="n" x="380" y="138" width="230" height="76" rx="10"/>
+      <text class="t" x="495" y="164" text-anchor="middle">Database cũ (bản Flask)</text>
+      <text class="ts" x="495" y="184" text-anchor="middle">thêm cột thiếu, rồi đóng dấu</text>
+      <text class="ts" x="495" y="200" text-anchor="middle">phiên bản 0001. Giữ dữ liệu.</text>
+      <rect class="n" x="650" y="138" width="230" height="76" rx="10"/>
+      <text class="t" x="765" y="164" text-anchor="middle">Database mới</text>
+      <text class="ts" x="765" y="184" text-anchor="middle">chạy migration 0001:</text>
+      <text class="ts" x="765" y="200" text-anchor="middle">tạo 8 bảng</text>
+
+      <path class="e" d="M495,216 V250" marker-end="url(#m2)"/>
+      <path class="e" d="M765,216 V234 H495"/>
+      <rect class="nh" x="380" y="252" width="230" height="76" rx="10"/>
+      <text class="t" x="495" y="278" text-anchor="middle">seed_if_empty()</text>
+      <text class="ts" x="495" y="298" text-anchor="middle">chưa có dự án? nạp</text>
+      <text class="ts" x="495" y="314" text-anchor="middle">data/seed_data.json</text>
+      <line class="e" x1="612" y1="290" x2="648" y2="290" marker-end="url(#m2)"/>
+      <rect class="ns" x="650" y="252" width="230" height="76" rx="10"/>
+      <text class="t" x="765" y="278" text-anchor="middle">Sẵn sàng</text>
+      <text class="tm" x="765" y="298" text-anchor="middle">http://127.0.0.1:5000</text>
+    </svg>
+    </div>
+    <figcaption>Khởi động nhiều lần vẫn an toàn. Lần thứ hai ứng dụng thấy dấu phiên bản và dòng dự án đã có, nên không đổi gì.</figcaption>
+  </figure>
+  <div class="box"><h3>Giải thích nhanh</h3>
+    <dl class="gloss">
+      <dt>Uvicorn</dt><dd>Chương trình “máy chủ” thực sự lắng nghe cổng 5000 và chuyển yêu cầu cho FastAPI. FastAPI chỉ là bộ khung viết logic, tự nó không mở cổng.</dd>
+      <dt>Lifespan</dt><dd>Đoạn code chạy một lần khi ứng dụng bật lên (và một lần khi tắt). Nơi thích hợp để chuẩn bị database.</dd>
+      <dt>Migration</dt><dd>Một file mô tả “thay đổi cấu trúc database”, ví dụ tạo bảng hoặc thêm cột. Có lịch sử và có số phiên bản, giống như git cho cấu trúc bảng.</dd>
+      <dt>Seed</dt><dd>Dữ liệu mẫu nạp sẵn lần đầu để ứng dụng không bị trống.</dd>
+    </dl>
+  </div>
+</section>
+
+<section>
+  <h2>3. Điều gì xảy ra khi người dùng bấm “Lưu”?</h2>
+  <p>Ví dụ: người dùng sửa tiến độ thực tế của công việc số 12 thành 40 rồi bấm Lưu. Đọc các mũi tên từ trên xuống dưới.</p>
+  <figure>
+    <div class="scroll">
+    <svg viewBox="0 0 900 590" role="img" aria-label="Mười bước. Người dùng bấm Lưu. Trình duyệt gửi POST. Router kiểm tra form bằng Pydantic. Repository chạy UPDATE và COMMIT. Router trả về chuyển hướng 303 kèm thông báo flash. Trình duyệt gửi GET. Repository chạy SELECT. Router trả về HTML. Người dùng thấy giá trị mới.">
+      <defs>
+        <marker id="m3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fi"/></marker>
+        <marker id="m3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="fa"/></marker>
+      </defs>
+      <line class="life" x1="80" y1="46" x2="80" y2="575"/>
+      <line class="life" x1="260" y1="46" x2="260" y2="575"/>
+      <line class="life" x1="440" y1="46" x2="440" y2="575"/>
+      <line class="life" x1="620" y1="46" x2="620" y2="575"/>
+      <line class="life" x1="800" y1="46" x2="800" y2="575"/>
+      <rect class="n" x="15" y="10" width="130" height="36" rx="8"/><text class="t" x="80" y="33" text-anchor="middle">Người dùng</text>
+      <rect class="n" x="195" y="10" width="130" height="36" rx="8"/><text class="t" x="260" y="33" text-anchor="middle">Trình duyệt</text>
+      <rect class="nh" x="375" y="10" width="130" height="36" rx="8"/><text class="t" x="440" y="33" text-anchor="middle">Router</text>
+      <rect class="nh" x="555" y="10" width="130" height="36" rx="8"/><text class="t" x="620" y="33" text-anchor="middle">Repository</text>
+      <rect class="ns" x="735" y="10" width="130" height="36" rx="8"/><text class="t" x="800" y="33" text-anchor="middle">SQLite</text>
+
+      <line class="e" x1="82" y1="86" x2="257" y2="86" marker-end="url(#m3)"/>
+      <text class="tl" x="170" y="78" text-anchor="middle">1 · bấm Lưu</text>
+      <line class="e" x1="262" y1="136" x2="437" y2="136" marker-end="url(#m3)"/>
+      <text class="tl" x="350" y="128" text-anchor="middle">2 · POST /tasks/12/edit</text>
+      <path class="e" d="M442,184 h34 v26 h-32" marker-end="url(#m3)"/>
+      <text class="tl" x="484" y="202">3 · TaskForm kiểm tra và đổi kiểu dữ liệu</text>
+      <line class="e" x1="442" y1="262" x2="617" y2="262" marker-end="url(#m3)"/>
+      <text class="tl" x="530" y="254" text-anchor="middle">4 · repo.update(task, values)</text>
+      <line class="ea" x1="622" y1="312" x2="797" y2="312" marker-end="url(#m3a)"/>
+      <text class="tla" x="710" y="304" text-anchor="middle">5 · UPDATE tasks + COMMIT</text>
+      <line class="e" x1="438" y1="362" x2="263" y2="362" marker-end="url(#m3)"/>
+      <text class="tl" x="350" y="354" text-anchor="middle">6 · 303 + thông báo flash</text>
+      <line class="e" x1="262" y1="410" x2="437" y2="410" marker-end="url(#m3)"/>
+      <text class="tl" x="350" y="402" text-anchor="middle">7 · GET /tasks</text>
+      <line class="e" x1="442" y1="456" x2="617" y2="456" marker-end="url(#m3)"/>
+      <text class="tl" x="530" y="448" text-anchor="middle">8 · list_tasks(...)</text>
+      <line class="e" x1="622" y1="478" x2="797" y2="478" marker-end="url(#m3)"/>
+      <text class="tl" x="710" y="496" text-anchor="middle">SELECT ... FROM tasks</text>
+      <line class="e" x1="438" y1="530" x2="263" y2="530" marker-end="url(#m3)"/>
+      <text class="tl" x="350" y="522" text-anchor="middle">9 · HTML + thông báo lưu</text>
+      <line class="e" x1="258" y1="566" x2="83" y2="566" marker-end="url(#m3)"/>
+      <text class="tl" x="170" y="558" text-anchor="middle">10 · thấy giá trị 40%</text>
+    </svg>
+    </div>
+    <figcaption>Chỉ bước 5 (màu cam) làm thay đổi dữ liệu. Bước 6 đến 10 chỉ tải lại trang để người dùng thấy kết quả. Mã 303 buộc trình duyệt dùng GET, nên nhấn F5 sẽ không gửi lại form lần nữa.</figcaption>
+  </figure>
+  <div class="box"><h3>Giải thích nhanh</h3>
+    <dl class="gloss">
+      <dt>GET và POST</dt><dd>GET là “cho tôi xem”, không đổi dữ liệu. POST là “tôi gửi dữ liệu lên để lưu hoặc xoá”.</dd>
+      <dt>Pydantic</dt><dd>Thư viện kiểm tra và đổi kiểu dữ liệu. Form luôn gửi lên dạng chữ; Pydantic đổi “40” thành số 40 và xử lý trường rỗng.</dd>
+      <dt>COMMIT</dt><dd>Lệnh “chốt” thay đổi vào database. Chưa COMMIT thì thay đổi chưa được lưu thật.</dd>
+      <dt>Redirect 303</dt><dd>Phản hồi bảo trình duyệt “hãy sang địa chỉ khác bằng GET”. Dùng sau mỗi lần lưu để tránh gửi form hai lần khi người dùng nhấn F5.</dd>
+      <dt>Flash message</dt><dd>Thông báo ngắn chỉ hiện một lần ở trang kế tiếp, ví dụ “Đã lưu”. App giữ nó trong cookie giữa hai yêu cầu.</dd>
+    </dl>
+  </div>
+</section>
+
+<section>
+  <h2>4. Các quy tắc của code</h2>
+  <ul class="rules">
+    <li>Router không viết SQL. Router gọi hàm trong <code>repositories.py</code>.</li>
+    <li>Hàm ghi dữ liệu trong repository tự COMMIT trước khi trả về.</li>
+    <li>Ngày tháng lưu dạng chữ chuẩn ISO, ví dụ <code>2026-01-15</code>.</li>
+    <li>Tiến độ kế hoạch là phân số từ 0 đến 1. Tiến độ thực tế là số từ 0 đến 100.</li>
+    <li>File database là <code>instance/project_manager.db</code>. Sao chép file này để sao lưu.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>5. Bảng thuật ngữ</h2>
+  <dl class="gloss">
+    <dt>Route</dt><dd>Một địa chỉ URL mà ứng dụng trả lời, ví dụ <code>/tasks</code>.</dd>
+    <dt>Router</dt><dd>Một file Python chứa nhiều route. Mỗi route là một hàm: đọc yêu cầu, gọi logic, trả về trang.</dd>
+    <dt>Repository</dt><dd>Nơi duy nhất chứa các truy vấn database. Muốn biết dữ liệu được lấy ra thế nào, chỉ cần đọc file này.</dd>
+    <dt>Model</dt><dd>Một class Python tương ứng với một bảng trong database. Mỗi thuộc tính là một cột.</dd>
+    <dt>Session</dt><dd>Một “phiên làm việc” với database cho một yêu cầu. Mở khi yêu cầu bắt đầu, đóng khi kết thúc.</dd>
+    <dt>Transaction</dt><dd>Một nhóm thao tác được coi là một khối: hoặc tất cả thành công, hoặc tất cả bị huỷ (rollback).</dd>
+    <dt>Template</dt><dd>File HTML có chỗ trống. Jinja2 điền dữ liệu vào chỗ trống rồi gửi trang hoàn chỉnh cho trình duyệt.</dd>
+    <dt>CRUD</dt><dd>Create, Read, Update, Delete: bốn thao tác cơ bản với dữ liệu (thêm, xem, sửa, xoá).</dd>
+    <dt>WBS</dt><dd>Work Breakdown Structure. Mã số của từng đầu việc trong kế hoạch. Khi nhập lại Excel, app dùng mã này để nhận ra “cùng một công việc”.</dd>
+    <dt>HSSE</dt><dd>Health, Safety, Security, Environment: sức khoẻ, an toàn, an ninh, môi trường.</dd>
+  </dl>
+</section>
+</div>
+
+<div id="feature-panels"></div>
+</div>
+
+<script>
+/* Mỗi tính năng là một object. Các tab được dựng từ danh sách này. */
+var FEATURES = [
+{
+  id: "dashboard", label: "Dashboard",
+  title: "Dashboard (trang tổng quan)",
+  purpose: "Cho thấy tình trạng của dự án trên một trang: tiến độ, việc trễ hạn, rủi ro đang mở và chi phí. Người dùng nhìn một lần là nắm được.",
+  routes: [["GET", "/"]],
+  tables: ["tasks", "risks", "costs", "diary", "project"],
+  flow: ["Trình duyệt hỏi GET /", "Router gọi dashboard_context()", "Repository đọc 5 bảng", "Python đếm và tính trung bình", "Template vẽ trang"],
+  logic: [{ items: [
+    "Đọc tất cả công việc. Bỏ các dòng tổng hợp (loại công việc “Tổng hợp”).",
+    "Đếm công việc đã xong, đang thi công và trễ hạn. Một việc trễ hạn khi ngày kết thúc nhỏ hơn hôm nay và việc chưa xong.",
+    "Tính tiến độ thực tế trung bình. Chỉ tính các việc đã được cập nhật.",
+    "Đếm rủi ro đang mở. Rủi ro mở là rủi ro có trạng thái khác “Đã xử lý” và khác “Chấp nhận rủi ro”.",
+    "Cộng tổng ngân sách và tổng thực chi.",
+    "Tính thời gian đã trôi qua: (ngày báo cáo − ngày bắt đầu) ÷ (ngày kết thúc − ngày bắt đầu)."
+  ]}],
+  output: [
+    "Một trang HTML gồm các thẻ KPI, thanh tiến độ theo nhóm, 5 rủi ro mở hàng đầu, 5 công việc sắp tới và 3 nhật ký mới nhất.",
+    "Trang này không thay đổi dữ liệu."
+  ],
+  terms: [
+    ["KPI", "Key Performance Indicator: chỉ số đo hiệu quả, thường hiện thành thẻ số lớn."],
+    ["Truy vấn (query)", "Một câu hỏi gửi cho database, ví dụ “có bao nhiêu rủi ro đang mở?”."],
+    ["Hàm gộp", "COUNT (đếm), SUM (cộng), AVG (trung bình): tính một con số từ nhiều dòng."]
+  ],
+  code: [["routers/pages.py", "dashboard() — route của trang"], ["services/stats.py", "dashboard_context() — tính mọi con số"], ["templates/dashboard.html", "giao diện trang"]],
+  watch: "App không tự sao chép tiến độ kế hoạch sang tiến độ thực tế. Tiến độ thực tế để trống cho đến khi người dùng nhập."
+},
+{
+  id: "project", label: "Thông tin dự án",
+  title: "Thông tin dự án",
+  purpose: "Lưu các thông tin chính của dự án: tên, chủ đầu tư, nhà thầu, ngày tháng và giá trị hợp đồng.",
+  routes: [["GET", "/project"], ["POST", "/project"]],
+  tables: ["project"],
+  flow: ["Trình duyệt hỏi GET /project", "Repository đọc dòng số 1", "Template hiện form", "Người dùng bấm Lưu (POST)", "ProjectForm đổi kiểu dữ liệu", "Repository cập nhật dòng 1", "Router chuyển hướng 303"],
+  logic: [
+    { h: "Hiện form (GET)", items: [
+      "Đọc dòng dự án.",
+      "Tính thời lượng theo ngày: ngày kết thúc − ngày bắt đầu."
+    ]},
+    { h: "Lưu form (POST)", items: [
+      "ProjectForm đọc từng trường. Trường số chấp nhận dấu phẩy (1,5). Ngày để trống thành None.",
+      "update_project() ghi giá trị mới và COMMIT.",
+      "Router lưu một thông báo flash rồi chuyển hướng với mã 303."
+    ]}
+  ],
+  output: [
+    "GET: một form HTML đã điền sẵn dữ liệu dự án.",
+    "POST: dòng dữ liệu được cập nhật. Trình duyệt quay về /project và hiện thông báo “Đã lưu thông tin dự án.”"
+  ],
+  terms: [
+    ["Form", "Biểu mẫu HTML có các ô nhập và nút gửi. Dữ liệu gửi lên luôn ở dạng chữ."],
+    ["Validate", "Kiểm tra dữ liệu hợp lệ và đổi kiểu (chữ sang số, chữ sang ngày) trước khi lưu."],
+    ["Constraint", "Ràng buộc của database. Ở đây bảng project có ràng buộc id = 1, nên chỉ có một dòng."],
+    ["None", "Giá trị “không có gì” của Python. Khi lưu vào database nó trở thành NULL."]
+  ],
+  code: [["routers/pages.py", "project_settings(), project_settings_save()"], ["schemas.py", "ProjectForm — đọc dữ liệu form"], ["repositories.py", "get_project(), update_project()"]],
+  watch: "Bảng chỉ chứa một dòng. Database từ chối mọi dòng có id khác 1."
+},
+{
+  id: "tasks", label: "Công việc",
+  title: "Công việc và tiến độ",
+  purpose: "Theo dõi từng đầu việc thi công và so sánh kế hoạch với tiến độ thực tế.",
+  routes: [["GET", "/tasks"], ["GET", "/tasks/new"], ["POST", "/tasks/new"], ["GET", "/tasks/{id}/edit"], ["POST", "/tasks/{id}/edit"], ["POST", "/tasks/{id}/delete"]],
+  tables: ["tasks"],
+  flow: ["Trình duyệt hỏi GET /tasks?priority=Cao", "Router đọc các bộ lọc", "Repository thêm một WHERE cho mỗi bộ lọc", "Database sắp xếp theo ưu tiên", "Template vẽ bảng"],
+  logic: [
+    { h: "Trang danh sách", items: [
+      "Bắt đầu bằng truy vấn lấy tất cả công việc.",
+      "Thêm một điều kiện WHERE cho mỗi bộ lọc người dùng chọn: từ khoá, trạng thái, nhóm, mức ưu tiên, chỉ việc trễ hạn.",
+      "Sắp xếp theo mức ưu tiên (Khẩn cấp, Cao, Trung bình, Thấp), sau đó theo mã WBS.",
+      "Đếm số việc trễ hạn và số việc ưu tiên cao chưa xong."
+    ]},
+    { h: "Lưu (thêm mới hoặc sửa)", items: [
+      "TaskForm đổi kiểu dữ liệu. Tiến độ kế hoạch gửi lên dạng 0–100 và được lưu dạng 0–1.",
+      "Tiến độ thực tế bị cắt về khoảng 0–100. Mức ưu tiên lạ sẽ thành “Trung bình”.",
+      "Nếu người dùng nhập bất kỳ dữ liệu thực tế nào, cột updated_at nhận giờ hiện tại.",
+      "Nếu tên công việc để trống, trang báo lỗi và app không lưu gì."
+    ]}
+  ],
+  output: [
+    "Danh sách: bảng HTML kèm bộ đếm việc trễ hạn và bộ đếm việc ưu tiên cao.",
+    "Lưu: dòng dữ liệu thay đổi. Trình duyệt về /tasks và hiện thông báo.",
+    "Xoá: dòng dữ liệu bị xoá."
+  ],
+  terms: [
+    ["WBS", "Work Breakdown Structure: cấu trúc phân rã công việc. Mỗi đầu việc có một mã số."],
+    ["Query string", "Phần sau dấu <code>?</code> trên URL, ví dụ <code>?priority=Cao&amp;status=Tạm dừng</code>. Dùng để truyền bộ lọc."],
+    ["WHERE / ORDER BY", "WHERE lọc dòng theo điều kiện. ORDER BY sắp xếp kết quả."],
+    ["Clamp (cắt khoảng)", "Ép một số nằm trong khoảng cho phép. Ví dụ 250 thành 100."]
+  ],
+  code: [["routers/tasks.py", "tasks_list(), task_create(), task_update(), _values()"], ["repositories.py", "list_tasks(), count_overdue_tasks()"], ["schemas.py", "TaskForm"]],
+  watch: "Tiến độ kế hoạch là phân số (0,5 = 50%). Tiến độ thực tế là số từ 0 đến 100. Đừng nhầm hai loại này."
+},
+{
+  id: "gantt", label: "Gantt",
+  title: "Biểu đồ Gantt",
+  purpose: "Vẽ mỗi công việc thành một thanh trên trục thời gian để nhìn lịch tổng thể.",
+  routes: [["GET", "/gantt"]],
+  tables: ["tasks", "project"],
+  flow: ["Trình duyệt hỏi GET /gantt", "Router đọc tasks và project", "Python đổi ngày thành phần trăm", "Template đặt left và width bằng CSS", "Trình duyệt vẽ các thanh"],
+  logic: [{ items: [
+    "Lấy ngày bắt đầu và ngày kết thúc của dự án. Nếu thiếu, dùng khoảng từ hôm nay đến hôm nay + 30 ngày.",
+    "Tính span = số ngày giữa ngày bắt đầu và ngày kết thúc.",
+    "Với mỗi việc: left = (ngày bắt đầu việc − ngày bắt đầu dự án) ÷ span × 100. width = (số ngày của việc + 1) ÷ span × 100.",
+    "Giữ left và width trong khoảng 0–100. Độ rộng tối thiểu là 0,8 để việc ngắn vẫn nhìn thấy.",
+    "Nếu một việc có ngày rỗng hoặc sai, độ rộng bằng 0 và không có thanh.",
+    "Dòng tháng ở đầu biểu đồ cũng tính bằng cách đổi sang phần trăm như trên."
+  ]}],
+  output: [
+    "Một trang HTML. Mỗi thanh là một phần tử có <code>left: X%; width: Y%</code>.",
+    "Trang không thay đổi dữ liệu."
+  ],
+  terms: [
+    ["Gantt", "Biểu đồ thanh ngang. Mỗi thanh là một việc: vị trí là lúc bắt đầu, độ dài là thời lượng."],
+    ["ISO date", "Định dạng ngày chuẩn YYYY-MM-DD. Chuẩn này sắp xếp và so sánh được như chuỗi chữ."],
+    ["CSS %", "Cách đặt vị trí theo phần trăm của khung chứa, nên biểu đồ co giãn theo màn hình."]
+  ],
+  code: [["routers/pages.py", "gantt()"], ["services/stats.py", "gantt_context()"], ["templates/gantt.html", "các thanh và dòng tháng"]],
+  watch: "Biểu đồ chỉ dùng ngày kế hoạch. Nó không vẽ ngày thực tế."
+},
+{
+  id: "resources", label: "Nguồn lực",
+  title: "Nguồn lực",
+  purpose: "Lưu danh sách nhân sự, công nhật, thiết bị và vận chuyển của dự án.",
+  routes: [["GET", "/resources"], ["GET/POST", "/resources/new"], ["GET/POST", "/resources/{id}/edit"], ["POST", "/resources/{id}/delete"]],
+  tables: ["resources"],
+  flow: ["Trình duyệt hỏi GET /resources", "Router đọc q và type", "Repository lọc và sắp xếp", "Template vẽ danh sách", "Người dùng thêm hoặc sửa bằng form"],
+  logic: [
+    { h: "Trang danh sách", items: [
+      "Ô tìm kiếm tìm trong tên, tên nhóm và ghi chú.",
+      "Bộ lọc loại phải khớp chính xác.",
+      "Sắp xếp theo loại, rồi theo tên. Danh sách loại lấy từ các giá trị khác nhau đang có trong bảng."
+    ]},
+    { h: "Lưu", items: [
+      "Ba route thêm, sửa, xoá được tạo từ một hàm dùng chung: register() trong records.py. Cùng hàm đó cũng tạo route cho chi phí, rủi ro và biện pháp.",
+      "Nguồn lực mới bắt buộc có tên. Nếu tên trống, form báo lỗi."
+    ]}
+  ],
+  output: [
+    "Một trang danh sách.",
+    "Sau khi lưu hoặc xoá, trình duyệt quay về /resources và hiện thông báo."
+  ],
+  terms: [
+    ["CRUD", "Create, Read, Update, Delete: thêm, xem, sửa, xoá. Hầu hết trang quản lý đều có bốn thao tác này."],
+    ["Factory (hàm tạo)", "Một hàm sinh ra nhiều hàm khác từ cùng một cấu hình. Ở đây nó giúp không phải viết lại code thêm/sửa/xoá bốn lần."],
+    ["LIKE '%từ%'", "Phép so khớp một phần: tìm mọi dòng có chứa “từ”."]
+  ],
+  code: [["routers/records.py", "Crud, register(), resources_list()"], ["repositories.py", "list_resources(), resource_types()"], ["schemas.py", "ResourceForm"]],
+  watch: "Bộ lọc tên là <code>type</code> trên URL. Trong Python nó là <code>typ</code> vì <code>type</code> là tên có sẵn của Python."
+},
+{
+  id: "costs", label: "Chi phí",
+  title: "Chi phí và ngân sách",
+  purpose: "So sánh dự toán với thực chi cho từng khoản chi.",
+  routes: [["GET", "/costs"], ["GET/POST", "/costs/new"], ["GET/POST", "/costs/{id}/edit"], ["POST", "/costs/{id}/delete"]],
+  tables: ["costs"],
+  flow: ["Trình duyệt hỏi GET /costs", "Repository đọc dòng, ngân sách lớn nhất trước", "Repository cộng ngân sách và thực chi", "Template định dạng tiền", "Trình duyệt hiện danh sách và tổng"],
+  logic: [{ items: [
+    "Sắp xếp các dòng theo ngân sách, lớn nhất trước. Ô tìm kiếm tìm trong tên và ghi chú.",
+    "Cộng budget_amount và actual_amount bằng SUM. Bảng rỗng cho kết quả 0.",
+    "Template định dạng tiền bằng hai filter: <code>money</code> (1.234.567 ₫) và <code>compact_money</code> (1,2 tr ₫ hoặc 1,23 tỷ ₫).",
+    "Ô số chấp nhận dấu phẩy. “2500,5” thành 2500.5.",
+    "Khoản chi mới bắt đầu với thực chi bằng 0. App không sao chép ngân sách sang thực chi."
+  ]}],
+  output: [
+    "Một trang danh sách kèm tổng ngân sách và tổng thực chi.",
+    "Sau khi lưu hoặc xoá, trình duyệt quay về /costs và hiện thông báo."
+  ],
+  terms: [
+    ["Dự toán / Thực chi", "Dự toán (budget) là số tiền dự kiến. Thực chi (actual) là số tiền đã chi thật."],
+    ["Filter của Jinja2", "Hàm nhỏ biến đổi giá trị ngay trong template, viết sau dấu <code>|</code>, ví dụ <code>{{ so_tien|money }}</code>."],
+    ["SUM", "Hàm của SQL cộng một cột của nhiều dòng."]
+  ],
+  code: [["routers/records.py", "costs_list()"], ["repositories.py", "list_costs(), cost_totals()"], ["web.py", "fmt_money(), fmt_compact_money()"]],
+  watch: "Khi nhập Excel, các dòng chi phí bị thay mới. App giữ lại thực chi nếu tên khoản chi giống nhau."
+},
+{
+  id: "risks", label: "Rủi ro",
+  title: "Rủi ro và kiến nghị",
+  purpose: "Ghi nhận rủi ro và kiến nghị. Giao mỗi rủi ro cho một người phụ trách, đặt hạn xử lý và theo dõi trạng thái.",
+  routes: [["GET", "/risks"], ["GET/POST", "/risks/new"], ["GET/POST", "/risks/{id}/edit"], ["POST", "/risks/{id}/delete"]],
+  tables: ["risks"],
+  flow: ["Trình duyệt hỏi GET /risks", "Repository lọc các dòng", "Database sắp xếp theo mức độ", "Repository đếm cao, đang xử lý, tổng", "Template hiện danh sách và bộ đếm"],
+  logic: [
+    { h: "Trang danh sách", items: [
+      "Bộ lọc: từ khoá (mô tả, kiến nghị, người phụ trách), mức độ và trạng thái.",
+      "Sắp xếp: mức “Cao” trước, rồi “Trung bình”, rồi các mức khác. Sau đó theo id.",
+      "Rủi ro mở là rủi ro có trạng thái khác “Đã xử lý” và khác “Chấp nhận rủi ro”.",
+      "Bộ đếm: cao = mức “Cao” và đang mở. đang xử lý = trạng thái “Đang xử lý”. tổng = tất cả dòng. Một câu SQL với SUM(CASE ...) trả cả ba số."
+    ]},
+    { h: "Lưu", items: [
+      "Mô tả là bắt buộc.",
+      "Rủi ro mới nhận created_at = bây giờ. Khi sửa, created_at không đổi."
+    ]}
+  ],
+  output: [
+    "Một trang danh sách kèm ba bộ đếm.",
+    "Dashboard hiện 5 rủi ro mở hàng đầu từ cùng dữ liệu này."
+  ],
+  terms: [
+    ["SUM(CASE ...)", "Đếm có điều kiện trong một lần truy vấn: với mỗi dòng, CASE cho 1 nếu thoả điều kiện và 0 nếu không, rồi SUM cộng lại."],
+    ["source_id", "Mã của dòng trong file Excel gốc. Dòng do người dùng tự thêm thì không có mã này."],
+    ["Trạng thái (status)", "Giá trị thuộc một danh sách cố định: Chưa xử lý, Đang xử lý, Đã xử lý, Chấp nhận rủi ro."]
+  ],
+  code: [["routers/records.py", "risks_list(), _risk_values()"], ["repositories.py", "list_risks(), risk_counts(), open_risk_summary()"], ["schemas.py", "RiskForm"]],
+  watch: "Rủi ro đến từ Excel có source_id. Khi nhập lại, app dùng mã này để giữ người phụ trách, hạn xử lý và trạng thái."
+},
+{
+  id: "hsse", label: "HSSE",
+  title: "An toàn HSSE",
+  purpose: "Ghi nhận kiểm tra an toàn, sự cố và near miss. Hiển thị các chỉ tiêu an toàn lấy từ kế hoạch.",
+  routes: [["GET", "/hsse"], ["POST", "/hsse"], ["POST", "/hsse/{id}/delete"]],
+  tables: ["hsse_metrics", "safety_logs"],
+  flow: ["Trình duyệt hỏi GET /hsse", "Repository đọc chỉ tiêu và 100 bản ghi mới nhất", "Template hiện form và danh sách", "Người dùng bấm Lưu (POST)", "Router lưu rồi chuyển hướng"],
+  logic: [{ items: [
+    "Form và danh sách nằm trên cùng một trang.",
+    "POST: nội dung ghi nhận là bắt buộc. Nếu trống, trang báo lỗi và hiện lại danh sách. App không lưu gì và không chuyển hướng.",
+    "Nếu ngày để trống, dùng ngày hôm nay.",
+    "people_affected được đổi thành số nguyên.",
+    "Bộ đếm: tổng bản ghi, và số bản ghi mức “Cao” có trạng thái khác “Đã đóng”."
+  ]}],
+  output: [
+    "Một trang gồm bảng chỉ tiêu, form nhập và danh sách 100 bản ghi mới nhất.",
+    "Sau khi lưu hoặc xoá, trình duyệt quay về /hsse và hiện thông báo."
+  ],
+  terms: [
+    ["HSSE", "Health, Safety, Security, Environment: sức khoẻ, an toàn, an ninh, môi trường."],
+    ["Near miss", "Sự việc “suýt xảy ra tai nạn” nhưng chưa gây thiệt hại. Cần ghi nhận để phòng ngừa."],
+    ["Render lại trang lỗi", "Khi dữ liệu sai, app hiện lại chính trang đó kèm lỗi thay vì chuyển hướng."]
+  ],
+  code: [["routers/logs.py", "hsse(), hsse_add(), hsse_delete()"], ["repositories.py", "safety_logs(), safety_log_counts(), hsse_metrics()"], ["schemas.py", "HsseForm"]],
+  watch: "Bảng chỉ tiêu (hsse_metrics) chỉ đến từ việc nhập Excel. Trang web không cho sửa bảng này."
+},
+{
+  id: "diary", label: "Nhật ký",
+  title: "Nhật ký công trường",
+  purpose: "Ghi một bản ghi cho mỗi ngày trên công trường: thời tiết, quân số, công việc đã làm và vướng mắc.",
+  routes: [["GET", "/diary"], ["POST", "/diary"], ["POST", "/diary/{id}/delete"]],
+  tables: ["diary"],
+  flow: ["Trình duyệt hỏi GET /diary", "Repository đọc bản ghi, mới nhất trước", "Template hiện form và danh sách", "Người dùng bấm Lưu (POST)", "Router lưu rồi chuyển hướng"],
+  logic: [{ items: [
+    "Liệt kê tất cả bản ghi. Sắp xếp theo ngày, mới nhất trước. Cùng ngày thì id lớn hơn đứng trước.",
+    "POST: completed_work là bắt buộc. Nếu trống, trang báo lỗi và không lưu gì.",
+    "Nếu ngày để trống, dùng hôm nay. worker_count được đổi thành số nguyên.",
+    "created_at lưu thời điểm bấm lưu."
+  ]}],
+  output: [
+    "Một trang gồm form nhập và danh sách bản ghi.",
+    "Dashboard hiện 3 bản ghi mới nhất."
+  ],
+  terms: [
+    ["Timestamp", "Dấu thời gian. created_at ghi lại chính xác lúc bản ghi được tạo."],
+    ["Số nguyên (int)", "Số không có phần lẻ. Quân số 35,5 người là vô nghĩa nên app đổi về số nguyên."]
+  ],
+  code: [["routers/logs.py", "diary(), diary_add(), diary_delete()"], ["repositories.py", "diary_entries()"], ["schemas.py", "DiaryForm"]],
+  watch: "Nhập Excel không bao giờ xoá nhật ký công trường."
+},
+{
+  id: "methods", label: "Biện pháp",
+  title: "Biện pháp thi công",
+  purpose: "Lưu danh sách công trình tạm, điện nước tạm và các chỉ số khối lượng lấy từ file Excel nguồn.",
+  routes: [["GET", "/methods"], ["GET/POST", "/methods/new"], ["GET/POST", "/methods/{id}/edit"], ["POST", "/methods/{id}/delete"]],
+  tables: ["methods"],
+  flow: ["Trình duyệt hỏi GET /methods", "Repository lọc theo từ khoá", "Database sắp xếp theo id", "Template vẽ danh sách", "Người dùng thêm hoặc sửa bằng form"],
+  logic: [{ items: [
+    "Ô tìm kiếm tìm trong tên và quy cách. Sắp xếp theo id (thứ tự trong file Excel).",
+    "Khi tạo mới, tên được cắt khoảng trắng ở đầu và cuối.",
+    "Khi sửa, app lưu tên đúng như người dùng gõ.",
+    "Khi tạo mới, tên là bắt buộc."
+  ]}],
+  output: [
+    "Một trang danh sách.",
+    "Sau khi lưu hoặc xoá, trình duyệt quay về /methods và hiện thông báo."
+  ],
+  terms: [
+    ["strip", "Cắt bỏ khoảng trắng thừa ở hai đầu chuỗi: “  abc  ” thành “abc”."],
+    ["Công trình tạm", "Hạng mục chỉ phục vụ thi công và sẽ dỡ bỏ, ví dụ hàng rào, lán trại, điện nước tạm."]
+  ],
+  code: [["routers/records.py", "methods_list(), _method_values()"], ["repositories.py", "list_methods()"], ["schemas.py", "MethodForm"]],
+  watch: "Khi nhập Excel, nếu file có sheet BienPhap có dòng, toàn bộ dòng biện pháp cũ bị thay mới."
+},
+{
+  id: "import", label: "Nhập Excel",
+  title: "Nhập dữ liệu từ Excel",
+  purpose: "Nạp kế hoạch mới từ file Excel nhưng giữ lại những gì người dùng đã nhập ngoài công trường.",
+  routes: [["GET", "/import"], ["POST", "/import"]],
+  tables: ["tasks", "risks", "costs", "resources", "methods", "hsse_metrics", "project"],
+  flow: ["Người dùng chọn file .xlsx (POST /import)", "Router kiểm tra loại và kích thước", "parse_workbook() đọc 7 sheet", "apply_import() thay dòng trong một transaction", "Router hiện kết quả"],
+  logic: [
+    { h: "Kiểm tra", items: [
+      "Tên file phải kết thúc bằng .xlsx. Kích thước tối đa 20 MB.",
+      "Lưu file vào instance/uploads với tên an toàn."
+    ]},
+    { h: "Đọc file", items: [
+      "parse_workbook() đọc các sheet TongQuan, TienDo, ChiPhi, RuiRo, NguonLuc, BienPhap và HSSE.",
+      "Ngày trong Excel (một số thứ tự) được đổi thành ngày dạng chữ, ví dụ 2026-01-15."
+    ]},
+    { h: "Thay dữ liệu (trong một transaction)", items: [
+      "Sao chép dữ liệu người dùng đã nhập của các dòng cũ: tiến độ thực tế, người phụ trách, ưu tiên (tìm theo mã WBS); người phụ trách, hạn xử lý, trạng thái (tìm theo mã rủi ro); thực chi (tìm theo tên khoản chi).",
+      "Xoá tasks, risks, costs cũ. Chèn các dòng mới. Đặt lại giá trị đã sao chép vào dòng có cùng mã hoặc cùng tên.",
+      "Chỉ thay nguồn lực, biện pháp và chỉ tiêu HSSE khi file có dòng dữ liệu cho chúng.",
+      "COMMIT một lần. Nếu có lỗi thì ROLLBACK. Dữ liệu cũ vẫn nguyên."
+    ]}
+  ],
+  output: [
+    "Thành công: thông báo kèm số công việc, rủi ro và khoản chi đã nạp.",
+    "Lỗi: thông báo kèm nguyên nhân. Dữ liệu không đổi.",
+    "Nhật ký công trường và sổ HSSE không bị thay đổi."
+  ],
+  terms: [
+    ["Transaction", "Một khối thao tác “được ăn cả, ngã về không”. Xoá rồi chèn lại 200 dòng mà chỉ làm được một nửa thì rất nguy hiểm, nên phải bọc trong transaction."],
+    ["COMMIT / ROLLBACK", "COMMIT chốt thay đổi. ROLLBACK huỷ mọi thay đổi từ đầu transaction."],
+    ["Snapshot", "Bản chụp dữ liệu tại một thời điểm. App chụp phần người dùng đã nhập trước khi xoá."],
+    ["Số thứ tự ngày của Excel", "Excel lưu ngày là số ngày tính từ 30/12/1899. App đổi số này về ngày thật."],
+    ["Khoá khớp (match key)", "Giá trị dùng để nhận ra “cùng một dòng” giữa file cũ và file mới."]
+  ],
+  code: [["routers/pages.py", "import_page(), import_submit()"], ["services/excel_import.py", "parse_workbook(), apply_import()"], ["constants.py", "MAX_UPLOAD_BYTES = 20 MB"]],
+  watch: "Khoá khớp: mã WBS cho công việc, mã rủi ro cho rủi ro, tên cho khoản chi. Nếu ai đó đổi tên một khoản chi trong Excel, thực chi của khoản đó quay về 0."
+},
+{
+  id: "export", label: "Báo cáo",
+  title: "Báo cáo và xuất Excel",
+  purpose: "Cho người dùng một file Excel báo cáo để chia sẻ hoặc lưu hồ sơ.",
+  routes: [["GET", "/reports"], ["GET", "/reports/export.xlsx"]],
+  tables: ["tất cả các bảng (chỉ đọc)"],
+  flow: ["Người dùng bấm nút tải về", "Router gọi build_report()", "Repository đọc từng bảng", "openpyxl ghi 8 sheet", "Trình duyệt lưu file .xlsx"],
+  logic: [{ items: [
+    "Trang /reports chỉ hiện các bộ đếm và tổng.",
+    "build_report() đọc dự án và 7 danh sách thông qua repository.",
+    "Mỗi danh sách được ghi vào một sheet: TongQuan, TienDo, NguonLuc, ChiPhi, RuiRo, BienPhap, HSSE, NhatKy.",
+    "Hàm tô màu dòng tiêu đề, thêm bộ lọc và đặt định dạng số (phần trăm, hàng nghìn).",
+    "Hàm trả về nội dung file kèm header <code>Content-Disposition: attachment</code>."
+  ]}],
+  output: [
+    "Một file tên <code>Bao_cao_quan_ly_du_an_AZB.xlsx</code> gồm 8 sheet.",
+    "Việc xuất file không thay đổi dữ liệu."
+  ],
+  terms: [
+    ["openpyxl", "Thư viện Python để đọc và ghi file Excel (.xlsx) mà không cần cài Excel."],
+    ["Content-Disposition: attachment", "Header báo trình duyệt “hãy tải file về” thay vì mở trực tiếp trong trang."],
+    ["bytes", "Dữ liệu thô của file. App tạo file trong bộ nhớ rồi gửi đi, không ghi ra ổ đĩa."]
+  ],
+  code: [["routers/pages.py", "reports(), export_xlsx()"], ["services/excel_export.py", "build_report()"], ["repositories.py", "tasks_for_export(), risks_for_export() ..."]],
+  watch: "File báo cáo dành cho người đọc. Muốn sao lưu toàn bộ trạng thái, hãy sao chép file instance/project_manager.db."
+}
+];
+
+(function () {
+  var tabsEl = document.getElementById("tabs");
+  var host = document.getElementById("feature-panels");
+  var overview = document.getElementById("panel-overview");
+  var order = ["overview"].concat(FEATURES.map(function (f) { return f.id; }));
+
+  function chips(list, cls) {
+    return list.map(function (t) { return '<span class="chip ' + (cls || "") + '">' + t + "</span>"; }).join("");
+  }
+  function routeChips(routes) {
+    return routes.map(function (r) { return '<span class="chip"><b>' + r[0] + "</b>" + r[1] + "</span>"; }).join("");
+  }
+  function logicHtml(sections) {
+    return sections.map(function (s) {
+      return (s.h ? '<div class="sub">' + s.h + "</div>" : "") +
+        '<ol class="logic">' + s.items.map(function (i) { return "<li>" + i + "</li>"; }).join("") + "</ol>";
+    }).join("");
+  }
+  function featureHtml(f) {
+    return '<div class="fhead"><h2>' + f.title + "</h2></div>" +
+      '<div class="box"><h3>Mục đích</h3><p>' + f.purpose + "</p>" +
+      '<div class="chips">' + routeChips(f.routes) + chips(f.tables, "db") + "</div>" +
+      '<div class="legend">Nhãn cam = route (địa chỉ URL và phương thức). Nhãn xanh = bảng database mà tính năng dùng.</div></div>' +
+      '<section><h3>Luồng xử lý</h3><ol class="flowstrip">' + f.flow.map(function (s) { return "<li>" + s + "</li>"; }).join("") + "</ol></section>" +
+      '<div class="cols"><div class="box"><h3>Logic: hoạt động thế nào</h3>' + logicHtml(f.logic) + "</div>" +
+      '<div class="box"><h3>Output: người dùng nhận được gì</h3><ul class="out">' + f.output.map(function (o) { return "<li>" + o + "</li>"; }).join("") + "</ul></div></div>" +
+      '<div class="box"><h3>Khái niệm cần biết</h3><dl class="gloss">' +
+      f.terms.map(function (t) { return "<dt>" + t[0] + "</dt><dd>" + t[1] + "</dd>"; }).join("") + "</dl></div>" +
+      '<div class="box"><h3>Code nằm ở đâu</h3><dl class="codemap">' +
+      f.code.map(function (c) { return "<dt>" + c[0] + "</dt><dd>" + c[1] + "</dd>"; }).join("") + "</dl></div>" +
+      '<p class="watch"><b>Lưu ý.</b> ' + f.watch + "</p>";
+  }
+
+  var buttons = {};
+  var panels = { overview: overview };
+  function addTab(id, label) {
+    var b = document.createElement("button");
+    b.className = "tab"; b.type = "button"; b.id = "tab-" + id; b.textContent = label;
+    b.setAttribute("role", "tab"); b.setAttribute("aria-controls", "panel-" + id);
+    b.addEventListener("click", function () { select(id, true); });
+    b.addEventListener("keydown", function (e) {
+      var i = order.indexOf(id), n = null;
+      if (e.key === "ArrowRight") n = order[(i + 1) % order.length];
+      else if (e.key === "ArrowLeft") n = order[(i - 1 + order.length) % order.length];
+      else if (e.key === "Home") n = order[0];
+      else if (e.key === "End") n = order[order.length - 1];
+      if (n) { e.preventDefault(); select(n, true); buttons[n].focus(); }
+    });
+    tabsEl.appendChild(b); buttons[id] = b;
+  }
+  addTab("overview", "Bức tranh chung");
+  FEATURES.forEach(function (f) {
+    addTab(f.id, f.label);
+    var p = document.createElement("div");
+    p.className = "panel"; p.id = "panel-" + f.id; p.setAttribute("role", "tabpanel");
+    p.setAttribute("aria-labelledby", "tab-" + f.id); p.hidden = true;
+    p.innerHTML = featureHtml(f);
+    host.appendChild(p); panels[f.id] = p;
+  });
+
+  function select(id, setHash) {
+    if (!panels[id]) id = "overview";
+    order.forEach(function (k) {
+      var on = k === id;
+      panels[k].hidden = !on;
+      buttons[k].setAttribute("aria-selected", on ? "true" : "false");
+      buttons[k].tabIndex = on ? 0 : -1;
+    });
+    buttons[id].scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (setHash) { try { history.replaceState(null, "", "#" + id); } catch (e) {} }
+  }
+  var start = "overview";
+  try { start = (location.hash || "").replace("#", "") || "overview"; } catch (e) {}
+  select(start, false);
+})();
+</script>
+
+</body>
+</html>

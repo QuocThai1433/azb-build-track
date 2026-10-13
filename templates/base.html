@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or 'Project Hub' }} · AZB Project Hub</title>
+  <meta name="theme-color" content="#101c31">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}?v={{ static_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/premium.css') }}?v={{ static_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/enterprise.css') }}?v={{ static_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/ultra.css') }}?v={{ static_version }}">
+  <script defer src="{{ url_for('static', path='js/app.js') }}?v={{ static_version }}"></script>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="{{ url_for('dashboard') }}">
+      <span class="brand-mark">AZB</span>
+      <span class="brand-text"><strong>AZB</strong><small>PROJECT HUB</small></span>
+    </a>
+    <div class="workspace-label">KHÔNG GIAN LÀM VIỆC</div>
+    <details class="project-menu" id="projectMenu">
+      <summary class="project-switch" title="Chọn dự án"><span class="project-dot"></span><span><b>{{ project.name if project else 'Chưa có dự án' }}</b><small>{{ (project.package_name or 'Dự án thi công') if project else 'Tải Excel để tạo dự án' }}</small></span><span class="switch-arrow">⌄</span></summary>
+      <div class="project-menu-panel">
+        <div class="project-menu-label">Dự án ({{ projects|length }})</div>
+        <div class="project-menu-list">
+        {% for p in projects %}<a class="project-menu-item{% if project and p.id == project.id %} is-current{% endif %}" href="{{ url_for('dashboard', project_id=p.id) }}"><span class="project-menu-dot"></span><span class="project-menu-text"><b>{{ p.name }}</b><small>{{ p.package_name or 'Dự án thi công' }}</small></span>{% if project and p.id == project.id %}<span class="project-menu-check" aria-label="Đang mở">✓</span>{% endif %}</a>{% endfor %}
+        </div>
+        <div class="project-menu-actions">
+          <a href="{{ url_for('project_new') }}">＋ Thêm dự án mới</a>
+          <a href="{{ url_for('projects_list') }}">☰ Quản lý danh sách dự án</a>
+        </div>
+      </div>
+    </details>
+    <nav class="nav-group">
+      <div class="nav-caption">TỔNG QUAN</div>
+      <a class="nav-link {% if active_endpoint=='dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4" rx="1.5"/><rect x="13.5" y="10.5" width="7" height="10" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></svg></span><span>Tổng quan</span></a>
+      <a class="nav-link {% if active_endpoint in ['project_settings'] %}active{% endif %}" href="{{ url_for('project_settings') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H10l2 2h5.5A2.5 2.5 0 0 1 20 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 9h16"/></svg></span><span>Thông tin dự án</span></a>
+    </nav>
+    <nav class="nav-group">
+      <div class="nav-caption">QUẢN LÝ THI CÔNG</div>
+      <a class="nav-link {% if active_endpoint in ['tasks_list','task_new','task_edit'] %}active{% endif %}" href="{{ url_for('tasks_list') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m7.5 9 1.5 1.5 2.5-3M13.5 9H17M7.5 15l1.5 1.5 2.5-3M13.5 15H17"/></svg></span><span>Công việc & tiến độ</span><span class="nav-badge">WBS</span></a>
+      <a class="nav-link {% if active_endpoint=='gantt' %}active{% endif %}" href="{{ url_for('gantt') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M7.5 3.5v3M16.5 3.5v3M4 9.5h16M7 13h4M7 16.5h7"/></svg></span><span>Biểu đồ Gantt</span></a>
+      <a class="nav-link {% if active_endpoint.startswith('resources') %}active{% endif %}" href="{{ url_for('resources_list') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.25"/><path d="M16 4.9a3.25 3.25 0 0 1 0 6.2M17 15h.5a3.5 3.5 0 0 1 3.5 3.5V20"/></svg></span><span>Nguồn lực</span></a>
+      <a class="nav-link {% if active_endpoint.startswith('methods') %}active{% endif %}" href="{{ url_for('methods_list') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M4 20l5.2-1.2L20 8a2.8 2.8 0 0 0-4-4L5.2 14.8z"/><path d="m3 4 3 3M3 10l3 3M11 3l3 3"/></svg></span><span>Biện pháp thi công</span></a>
+    </nav>
+    <nav class="nav-group">
+      <div class="nav-caption">KIỂM SOÁT DỰ ÁN</div>
+      <a class="nav-link {% if active_endpoint.startswith('cost') %}active{% endif %}" href="{{ url_for('costs_list') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3"/><path d="M16 9.2c-.6-.7-1.5-1.1-2.7-1.1-1.4 0-2.3.7-2.3 1.6 0 2.7 5.2 1 5.2 3.8 0 1.1-1 1.9-2.5 1.9-1.2 0-2.3-.4-3-1.3M13.5 6.5v11"/></svg></span><span>Chi phí & ngân sách</span></a>
+      <a class="nav-link {% if active_endpoint.startswith('risk') %}active{% endif %}" href="{{ url_for('risks_list') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 4.6 2.9 17.4A1.8 1.8 0 0 0 4.5 20h15a1.8 1.8 0 0 0 1.6-2.6L13.7 4.6a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 16.5h.01"/></svg></span><span>Rủi ro & kiến nghị</span></a>
+      <a class="nav-link {% if active_endpoint=='hsse' %}active{% endif %}" href="{{ url_for('hsse') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6v5.6c0 4.1-2.7 7.3-7 8.9-4.3-1.6-7-4.8-7-8.9V6z"/><path d="m8.5 12 2.2 2.2 4.8-4.8"/></svg></span><span>An toàn HSSE</span></a>
+      <a class="nav-link {% if active_endpoint=='diary' %}active{% endif %}" href="{{ url_for('diary') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 3.5v17M12 8h4M12 12h4M12 16h3"/></svg></span><span>Nhật ký công trường</span></a>
+    </nav>
+    <nav class="nav-group">
+      <div class="nav-caption">DỮ LIỆU & BÁO CÁO</div>
+      <a class="nav-link {% if active_endpoint=='reports' or active_endpoint=='export_xlsx' %}active{% endif %}" href="{{ url_for('reports') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V4M19 20V8"/><path d="M3.5 20h17"/></svg></span><span>Báo cáo & xuất file</span></a>
+      <a class="nav-link {% if active_endpoint=='import_page' %}active{% endif %}" href="{{ url_for('import_page') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></span><span>Nhập dữ liệu Excel</span></a>
+    </nav>
+    <div class="sidebar-bottom"><div class="online-dot"></div><span>Ứng dụng nội bộ</span><span class="version">v{{ app_version }}</span></div>
+  </aside>
+  <main class="main-area">
+    <header class="topbar">
+      <button class="mobile-menu" id="mobileMenu" aria-label="Mở menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div class="breadcrumb"><span>AZB Project Hub</span><b>/</b><strong>{{ title or 'Tổng quan' }}</strong></div>
+      <div class="global-search" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="globalSearch" type="search" placeholder="Tìm nhanh chức năng…" aria-label="Tìm nhanh chức năng"><kbd>Ctrl K</kbd><div id="searchResults" class="search-results" hidden></div></div>
+      <div class="topbar-right"><span class="live-tag"><i></i> HỆ THỐNG ĐANG HOẠT ĐỘNG</span><div class="top-divider"></div><div class="user-avatar">AZ</div><div class="user-meta"><strong>Ban quản lý dự án</strong><small>Không gian làm việc nội bộ</small></div></div>
+    </header>
+    <section class="page-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}<div class="flash-stack">{% for category, message in messages %}<div class="flash {{ category }}"><span>{{ '✓' if category=='success' else '!' }}</span><div>{{ message }}</div><button type="button" class="flash-close" aria-label="Đóng">×</button></div>{% endfor %}</div>{% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+      <footer class="footer"><span>AZB PROJECT HUB <span class="footer-dot">•</span> Quản lý kế hoạch thi công</span><span>Dữ liệu được lưu trên máy tính này</span></footer>
+    </section>
+  </main>
+</div>
+</body>
+</html>

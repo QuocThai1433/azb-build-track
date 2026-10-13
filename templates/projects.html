@@ -1,0 +1,80 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading heading-row"><div><div class="eyebrow">KHÔNG GIAN LÀM VIỆC</div><h1>Danh sách dự án</h1><p class="page-subtitle">Mỗi lần tải một file Excel mới, hệ thống tạo thêm một dự án tại đây. Dữ liệu của từng dự án tách riêng.</p></div><div class="heading-actions"><a class="btn btn-primary" href="{{ url_for('project_new') }}">＋ &nbsp; Thêm dự án mới</a></div></div>
+<section class="panel projects-panel">
+  <div class="table-wrap">
+    <table class="data-table projects-table">
+      <thead><tr><th>Dự án</th><th>Chủ đầu tư</th><th>Công việc</th><th>Tạo lúc</th><th>Trạng thái</th><th></th></tr></thead>
+      <tbody>
+      {% for p in all_projects %}
+        <tr class="{% if p.status != 'active' %}is-archived{% endif %}">
+          <td><a class="project-name-link" href="{{ url_for('dashboard', project_id=p.id) }}"><b>{{ p.name }}</b></a><small class="project-sub">#{{ p.id }} · {{ p.package_name or 'Dự án thi công' }}</small></td>
+          <td>{{ p.client or '—' }}</td>
+          <td>{{ data_counts.get(p.id, {}).get('tasks', 0) }}</td>
+          <td>{{ (p.created_at or '')[:16]|replace('T', ' ') }}</td>
+          <td>{% if p.status == 'active' %}<span class="tag tag-teal">Đang dùng</span>{% else %}<span class="tag">Đã lưu trữ</span>{% endif %}</td>
+          <td class="projects-actions">
+            <a class="btn btn-outline btn-sm" href="{{ url_for('dashboard', project_id=p.id) }}">Mở</a>
+            {% if p.status == 'active' %}
+            <form method="post" action="{{ url_for('project_archive', project_id=p.id) }}"><button class="btn btn-outline btn-sm" type="submit" data-confirm="Lưu trữ dự án “{{ p.name }}”? Dự án sẽ ẩn khỏi danh sách chọn nhưng dữ liệu vẫn giữ nguyên.">Lưu trữ</button></form>
+            {% else %}
+            <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}"><button class="btn btn-outline btn-sm" type="submit">Khôi phục</button></form>
+            {% endif %}
+            {% if all_projects|length > 1 %}
+            <button class="btn btn-danger btn-sm btn-delete" type="button" data-delete-project
+                    data-action="{{ url_for('project_delete', project_id=p.id) }}"
+                    data-name="{{ p.name }}" data-summary="{{ summaries.get(p.id) or 'không có dữ liệu' }}"
+                    aria-label="Xoá dự án {{ p.name }}">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+              <span>Xoá dự án</span></button>
+            {% else %}
+            <button class="btn btn-sm btn-delete btn-delete-off" type="button" disabled title="Không thể xoá dự án cuối cùng. Hãy tạo dự án khác trước.">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+              <span>Xoá dự án</span></button>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6">Chưa có dự án nào. Hãy tải một file Excel kế hoạch để tạo dự án đầu tiên.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<dialog id="deleteDialog" class="danger-dialog" aria-labelledby="deleteTitle">
+  <form method="post" id="deleteForm" class="danger-dialog-card">
+    <div class="danger-dialog-head">
+      <span class="danger-dialog-icon" aria-hidden="true">!</span>
+      <h3 id="deleteTitle">Bạn có chắc chắn xoá dự án này không?</h3>
+    </div>
+    <p>Dự án <b id="deleteName"></b> sẽ bị xoá cùng toàn bộ dữ liệu: <span id="deleteSummary"></span>. Không thể hoàn tác bằng nút trên giao diện.</p>
+    <p class="danger-dialog-note">Database được sao lưu tự động vào <code>instance/backups</code> ngay trước khi xoá.</p>
+    <div class="danger-dialog-actions">
+      <button type="button" class="btn btn-outline" data-cancel>Huỷ</button>
+      <button type="submit" class="btn btn-danger">Xoá dự án</button>
+    </div>
+  </form>
+</dialog>
+<script>
+(function () {
+  var dialog = document.getElementById('deleteDialog');
+  var form = document.getElementById('deleteForm');
+  var submit = form.querySelector('button[type="submit"]');
+
+  document.querySelectorAll('[data-delete-project]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      form.action = button.getAttribute('data-action');
+      document.getElementById('deleteName').textContent = '“' + button.getAttribute('data-name') + '”';
+      document.getElementById('deleteSummary').textContent = button.getAttribute('data-summary');
+      submit.disabled = false;
+      submit.textContent = 'Xoá dự án';
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else if (window.confirm('Bạn có chắc chắn xoá dự án này không?')) form.submit();
+    });
+  });
+  form.addEventListener('submit', function () { submit.disabled = true; submit.textContent = 'Đang sao lưu và xoá…'; });
+  dialog.querySelector('[data-cancel]').addEventListener('click', function () { dialog.close(); });
+  dialog.addEventListener('click', function (event) { if (event.target === dialog) dialog.close(); });
+})();
+</script>
+{% endblock %}

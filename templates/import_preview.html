@@ -1,0 +1,160 @@
+{% extends 'base.html' %}{% block content %}
+{% set updating = mode == 'update' %}
+<div class="page-heading"><div class="eyebrow">BƯỚC 2/2 · XEM TRƯỚC</div><h1>Kiểm tra trước khi nhập</h1>
+<p class="page-subtitle">File <b>{{ file_name }}</b> · {% if updating %}cập nhật dự án <b>{{ project_name_now }}</b>{% else %}tạo <b>dự án mới</b>{% endif %}. Chưa có gì được ghi vào dữ liệu.</p></div>
+
+<form method="post" id="previewForm" class="preview-form">
+  <input type="hidden" name="token" value="{{ token }}">
+  <input type="hidden" name="mode" value="{{ mode }}">
+  <input type="hidden" name="backup" value="{{ backup }}">
+  <input type="hidden" name="file_name" value="{{ file_name }}">
+
+  {% set name_in_file = plan.project.get('name') %}
+  {% if updating %}
+    <input type="hidden" name="project_name" value="">
+  {% else %}
+  <section class="panel preview-panel name-panel {% if not (new_name or name_in_file) %}needs-name{% endif %}">
+    <div class="panel-head"><div><h3>Tên dự án</h3>
+      <p>{% if name_in_file %}Lấy từ file: <b>{{ name_in_file }}</b>. Có thể nhập tên khác bên dưới.{% else %}File không ghi tên dự án. <b>Hãy nhập tên</b> để tạo dự án, đây là thông tin duy nhất bắt buộc.{% endif %}</p></div></div>
+    <div class="name-row">
+      <input id="projectNameInput" name="project_name" type="text" maxlength="200" autocomplete="off"
+             value="{{ new_name }}" placeholder="{{ name_in_file or 'Ví dụ: Kho logistics Bình Dương' }}"
+             aria-describedby="nameHint">
+      <small id="nameHint">Để trống để dùng tên trong file.</small>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if not plan.has_data %}
+  <div class="preview-alert preview-alert-warn"><strong>Chưa nhận ra dữ liệu nào trong file.</strong>
+    <span>{% if updating %}Chưa có gì để cập nhật. {% else %}Bạn vẫn có thể tạo dự án trống (chỉ có tên), các mục để rỗng. {% endif %}Nếu trong file có dữ liệu, hãy chọn sheet đúng cho từng mục ở bên dưới rồi bấm “Cập nhật xem trước”. Các sheet có trong file: {{ plan.sheet_names|join(', ') }}.</span></div>
+  {% endif %}
+
+  <section class="panel preview-panel">
+    <div class="panel-head"><div><h3>Thông tin dự án</h3><p>Lấy từ sheet tổng quan. Ô không tìm thấy sẽ để trống{% if updating %} (giữ giá trị hiện có){% endif %}.</p></div></div>
+    <table class="data-table preview-table">
+      <tbody>
+      {% set labels = [('name', 'Tên dự án'), ('client', 'Chủ đầu tư'), ('contractor', 'Nhà thầu'), ('package_name', 'Gói thầu'), ('description', 'Mô tả / hạng mục chính'), ('report_date', 'Ngày báo cáo'), ('prelim_budget', 'Ngân sách Prelim'), ('planned_progress', '% tiến độ kế hoạch')] %}
+      {% for key, label in labels %}
+        <tr>
+          <th>{{ label }}</th>
+          {% if key == 'name' and new_name and not updating %}
+            <td><b>{{ new_name }}</b> <span class="tag tag-teal">bạn nhập</span></td><td class="muted">ô “Tên dự án”</td>
+          {% elif plan.project.get(key) is not none %}
+            <td>{% if key == 'prelim_budget' %}{{ plan.project[key]|money }}{% elif key == 'planned_progress' %}{{ (plan.project[key] * 100)|round(1) }}%{% else %}{{ plan.project[key] }}{% endif %}</td>
+            <td class="muted">{{ plan.project_sources.get(key, '') }}</td>
+          {% elif key == 'name' and not updating %}
+            <td><span class="empty-value needs">chưa có, hãy nhập ở ô “Tên dự án” phía trên</span></td><td class="muted">không tìm thấy trong file</td>
+          {% elif key == 'report_date' and not updating %}
+            <td><i>(ngày hôm nay)</i></td><td class="muted">không tìm thấy trong file</td>
+          {% else %}
+            <td><span class="empty-value">để trống</span></td><td class="muted">không tìm thấy trong file</td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  {% for key in entity_order %}
+    {% set ep = plan.entities[key] %}
+    {% set spec = entity_specs[key] %}
+    <section class="panel preview-panel entity-card {% if ep.used %}is-used{% elif ep.sheet %}is-empty{% else %}is-missing{% endif %}">
+      <div class="panel-head">
+        <div>
+          <h3>{{ spec.label }}</h3>
+          <p>
+            {% if ep.used %}Đọc được <b>{{ ep.rows|length }}</b> dòng từ sheet <b>{{ ep.sheet }}</b>{% if ep.header_row %} (tiêu đề ở dòng {{ ep.header_row }}){% endif %}.
+            {% elif ep.sheet %}Sheet <b>{{ ep.sheet }}</b> không có dòng dữ liệu nào đọc được.
+            {% else %}Không tìm thấy sheet cho mục này.{% endif %}
+            {% if not ep.used %}<span class="keep-note">{% if updating %}Dữ liệu hiện có được giữ nguyên.{% else %}Mục này để trống.{% endif %}</span>{% endif %}
+          </p>
+        </div>
+        <div class="sheet-picker">
+          <label for="sheet_{{ key }}">Sheet</label>
+          <select id="sheet_{{ key }}" name="sheet_{{ key }}">
+            <option value="" {% if not ep.sheet %}selected{% endif %}>(Không dùng)</option>
+            {% for name in plan.sheet_names %}<option value="{{ name }}" {% if name == ep.sheet %}selected{% endif %}>{{ name }}</option>{% endfor %}
+          </select>
+          <input type="hidden" name="prev_sheet_{{ key }}" value="{{ ep.sheet or '' }}">
+          <input type="hidden" name="msheet_{{ key }}" value="{{ '1' if ep.sheet_origin == 'manual' else '0' }}">
+        </div>
+      </div>
+
+      {% if ep.layout == 'azb_resources' %}
+        <p class="preview-note">Sheet này đúng mẫu AZB (3 bảng: ban chỉ huy, công nhật, thiết bị) nên được đọc theo mẫu, không cần ghép cột.</p>
+      {% elif ep.columns %}
+      <div class="table-wrap">
+        <table class="data-table preview-table map-table">
+          <thead><tr><th>Cột</th><th>Tiêu đề trong file</th><th>Ví dụ</th><th>Ghép với trường</th><th></th></tr></thead>
+          <tbody>
+          {% for c in ep.columns %}
+            <tr class="{% if c.field is none and not c.ignorable %}needs-attention{% endif %}">
+              <td class="mono">{{ c.letter }}</td>
+              <td><b>{{ c.header }}</b></td>
+              <td class="muted">{{ c.samples|join(' · ') or '—' }}</td>
+              <td>
+                <select name="col_{{ key }}_{{ c.index }}" aria-label="Ghép cột {{ c.letter }}">
+                  <option value="" {% if c.field is none %}selected{% endif %}>(Bỏ qua cột này)</option>
+                  {% for fkey, flabel in choices[key] %}<option value="{{ fkey }}" {% if fkey == c.field %}selected{% endif %}>{{ flabel }}</option>{% endfor %}
+                </select>
+                <input type="hidden" name="was_{{ key }}_{{ c.index }}" value="{{ c.field or '' }}">
+                <input type="hidden" name="man_{{ key }}_{{ c.index }}" value="{{ '1' if c.origin == 'manual' else '0' }}">
+              </td>
+              <td>
+                {% if c.origin == 'manual' %}<span class="tag tag-violet">bạn chọn</span>
+                {% elif c.origin == 'alias' %}<span class="tag tag-blue">đã nhớ</span>
+                {% elif c.field %}<span class="tag tag-teal">tự nhận</span>
+                {% elif c.ignorable %}<span class="tag">không dùng</span>
+                {% else %}<span class="tag tag-amber">chưa nhận ra</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if ep.used and ep.layout == 'table' %}
+        {% set unmapped = [] %}
+        {% for fkey, flabel in choices[key] %}{% if fkey not in ep.mapped_fields and fkey not in ('stt', 'note_source') %}{% if unmapped.append(flabel) %}{% endif %}{% endif %}{% endfor %}
+        {% if unmapped %}<p class="preview-note">Trường không có cột trong file: <b>{{ unmapped|join(', ') }}</b> → {% if updating %}giữ giá trị hiện có{% else %}để trống{% endif %}.</p>{% endif %}
+      {% endif %}
+      {% for w in ep.warnings %}<p class="preview-note preview-note-warn">⚠ {{ w }}</p>{% endfor %}
+      {% if ep.skipped %}
+        <details class="skipped-box"><summary>{{ ep.skipped|length }} dòng được bỏ qua</summary>
+          <ul>{% for rownum, why in ep.skipped[:25] %}<li>Dòng {{ rownum }}: {{ why }}</li>{% endfor %}{% if ep.skipped|length > 25 %}<li>… và {{ ep.skipped|length - 25 }} dòng nữa</li>{% endif %}</ul>
+        </details>
+      {% endif %}
+    </section>
+  {% endfor %}
+
+  {% if plan.unused_sheets %}
+    <p class="preview-note">Sheet chưa dùng: {{ plan.unused_sheets|join(', ') }}. Nếu trong đó có dữ liệu cần nhập, hãy chọn nó cho đúng mục ở trên.</p>
+  {% endif %}
+
+  <section class="panel preview-panel summary-card">
+    <div class="panel-head"><div><h3>Tóm tắt</h3></div></div>
+    <ul class="summary-list">
+      {% for key, label in stat_labels %}
+        {% set ep = plan.entities[key] %}
+        <li class="{% if ep.used %}has{% endif %}"><strong>{{ ep.rows|length }}</strong> {{ label }}{% if not ep.used %} <small>{% if updating %}(giữ nguyên){% else %}(để trống){% endif %}</small>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% if updating and matches %}
+      <p class="preview-note">Giữ tiến độ thực tế cho <b>{{ matches.by_id + matches.by_title }}</b> / {{ plan.entities['tasks'].rows|length }} công việc
+        (khớp mã WBS: {{ matches.by_id }}, khớp theo tên: {{ matches.by_title }}). <b>{{ matches.new }}</b> công việc mới.
+        {% if matches.old_total > matches.by_id + matches.by_title %}Hiện có {{ matches.old_total }} công việc; những việc không còn trong file sẽ bị xoá.{% endif %}</p>
+    {% endif %}
+    <label class="remember-row"><input type="checkbox" name="remember" value="1" {% if remember %}checked{% endif %}> Ghi nhớ cách ghép cột bạn đã chỉnh để dùng cho các file sau</label>
+    <p class="preview-note">{% if backup == 'no' %}Bạn chọn <b>không sao lưu</b> trước khi nhập.{% else %}Database sẽ được <b>sao lưu</b> trước khi nhập.{% endif %}</p>
+  </section>
+
+  <div class="preview-actions">
+    <a class="btn btn-outline" href="{{ url_for('import_page') }}">← Chọn file khác</a>
+    <button class="btn btn-outline" type="submit" formaction="{{ url_for('import_preview') }}">↻ Cập nhật xem trước</button>
+    <button class="btn btn-primary" type="submit" formaction="{{ url_for('import_confirm') }}" {% if updating and not plan.has_data and not plan.project %}disabled{% endif %}
+            data-confirm="{% if updating %}Dữ liệu kế hoạch của dự án “{{ project_name_now }}” sẽ được thay theo file này. Tiếp tục nhập?{% else %}Tạo dự án mới từ file này? Các dự án đang có không bị thay đổi.{% endif %}">⇧ &nbsp; Nhập dữ liệu</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading heading-row"><div><div class="eyebrow">KHÔNG GIAN LÀM VIỆC</div><h1>Thêm dự án mới</h1><p class="page-subtitle">Chọn cách tạo dự án. Các dự án đang có không bị thay đổi.</p></div><div class="heading-actions"><a class="btn btn-outline" href="{{ url_for('projects_list') }}">← &nbsp; Danh sách dự án</a></div></div>
+
+<div class="new-project-grid">
+  <section class="panel new-project-card">
+    <div class="import-icon">⇧</div>
+    <h3>Từ file Excel kế hoạch</h3>
+    <p>Chọn file .xlsx. App nhận diện sheet và cột, cho bạn xem trước và chỉnh trước khi nhập. Thiếu mục nào thì để trống.</p>
+    {% if upload_host %}
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('import_page', project_id=upload_host) }}" class="new-project-form">
+      <input type="hidden" name="mode" value="new">
+      <input type="hidden" name="backup" value="yes">
+      <label for="npFile">File Excel (.xlsx, tối đa 20 MB)</label>
+      <input id="npFile" name="workbook" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+      <label for="npExcelName">Tên dự án <small>(để trống = lấy tên ghi trong file)</small></label>
+      <input id="npExcelName" name="project_name" type="text" maxlength="200" autocomplete="off" placeholder="Ví dụ: Kho logistics Bình Dương">
+      <button class="btn btn-primary btn-full" type="submit">→ &nbsp; Tiếp tục: xem trước dữ liệu</button>
+    </form>
+    {% else %}
+    <p class="muted">Chưa có dự án nào để mở trang nhập. Hãy tạo một dự án trống ở bên cạnh trước.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel new-project-card">
+    <div class="import-icon import-icon-plain">＋</div>
+    <h3>Dự án trống</h3>
+    <p>Chỉ cần nhập tên. Bạn thêm công việc, chi phí… bằng tay, hoặc nhập Excel vào sau.</p>
+    <form method="post" action="{{ url_for('project_new') }}" class="new-project-form">
+      <label for="npName">Tên dự án</label>
+      <input id="npName" name="name" type="text" maxlength="200" autocomplete="off" required value="{{ typed_name }}" placeholder="Ví dụ: Văn phòng Quận 7">
+      <button class="btn btn-outline btn-full" type="submit">＋ &nbsp; Tạo dự án trống</button>
+    </form>
+  </section>
+</div>
+{% endblock %}
