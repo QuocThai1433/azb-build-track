@@ -1,0 +1,17 @@
+{% extends 'base_public.html' %}{% block content %}
+<main class="login-wrap">
+  <section class="login-card">
+    <div class="login-brand"><span class="brand-mark">AZB</span><div><strong>AZB Project Hub</strong><small>Quản lý kế hoạch thi công</small></div></div>
+    <h1>Đăng nhập</h1>
+    <p class="login-sub">Dùng tài khoản do quản trị viên cấp.</p>
+    <form method="post" action="{{ url_for('login') }}" class="login-form">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label for="username">Tên đăng nhập</label>
+      <input id="username" name="username" value="{{ username }}" autocomplete="username" autofocus required>
+      <label for="password">Mật khẩu</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button class="btn btn-primary login-submit" type="submit">Đăng nhập</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

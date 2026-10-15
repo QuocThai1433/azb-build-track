@@ -13,7 +13,7 @@ from starlette.convertors import Convertor, register_url_convertor
 
 from .db import SessionLocal
 
-RESERVED = {"new", "p", "projects", "static"}   # first URL segments the app already uses
+RESERVED = {"new", "p", "projects", "static", "login", "logout", "account", "users", "audit-logs", "api", "register"}   # first URL segments the app already uses
 _ID_BY_SLUG: dict[str, int] = {}
 _SLUG_BY_ID: dict[int, str] = {}
 

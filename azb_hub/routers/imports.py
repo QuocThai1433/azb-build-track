@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from .. import audit
 from .. import repositories as repo
 from ..constants import MAX_UPLOAD_BYTES
 from ..db import DB_PATH, get_db
@@ -22,8 +23,9 @@ from ..services import backup as backup_service
 from ..services import excel_import, excel_mapping
 from ..services.excel_mapping import ENTITIES, ENTITY_ORDER, ImportPlan, norm
 from ..web import flash, redirect, render
+from .deps import require
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require("import.run"))])
 
 UPLOAD_DIR = DB_PATH.parent / "uploads"
 TOKEN = re.compile(r"^[0-9a-f]{32}$")
@@ -42,7 +44,7 @@ def _cleanup_pending() -> None:
     if not UPLOAD_DIR.exists():
         return
     limit = time.time() - PENDING_MAX_AGE
-    for f in UPLOAD_DIR.glob("pending_*.xlsx"):
+    for f in [*UPLOAD_DIR.glob("pending_*.xlsx"), *UPLOAD_DIR.glob("ai_*")]:     # ai_*: see ai_plan.py
         try:
             if f.stat().st_mtime < limit:
                 f.unlink()
@@ -53,7 +55,7 @@ def _cleanup_pending() -> None:
 def _upload_page(request: Request, db: Session, project_id: int):
     counts = {"tasks": repo.count_rows(db, Task, project_id), "costs": repo.count_rows(db, Cost, project_id),
               "risks": repo.count_rows(db, Risk, project_id), "resources": repo.count_rows(db, Resource, project_id)}
-    return render(request, "import.html", title="Nhập dữ liệu Excel", counts=counts,
+    return render(request, "import.html", title="Cập nhật từ Excel", counts=counts,
                   backups=backup_service.list_backups(), aliases=repo.list_aliases(db))
 
 
@@ -255,6 +257,8 @@ def _confirm_step(request: Request, db: Session, project_id: int, form: dict[str
             shutil.move(str(pending), str(UPLOAD_DIR / safe))
         except OSError:
             pass
+    audit.record(db, "import", "project", target, target,
+                 new={"file": ctx["file_name"], "mode": ctx["mode"], "stats": stats})
     flash(request, f"{head}: {counts or 'không có dữ liệu'}.{tail}{backup_note}", "success")
     return redirect(request, "dashboard" if ctx["mode"] != "update" else "import_page", project_id=target)
 

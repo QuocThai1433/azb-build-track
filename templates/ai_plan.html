@@ -1,0 +1,55 @@
+{% extends 'base.html' %}{% block content %}
+{% if state == 'running' %}<meta http-equiv="refresh" content="4">{% endif %}
+<div class="page-heading heading-row"><div><div class="eyebrow">TRỢ LÝ AI · BƯỚC 1/2</div><h1>Lập kế hoạch thi công bằng AI</h1>
+<p class="page-subtitle">Tải lên bảng khối lượng và file tiến độ. AI đọc hai file và dựng bản nháp dự án; bạn xem trước rồi mới tạo dự án.</p></div>
+<div class="heading-actions"><a class="btn btn-outline" href="{{ url_for('project_new') }}">← &nbsp; Thêm dự án mới</a></div></div>
+
+{% if state == 'upload' %}
+<div class="import-grid"><section class="panel import-panel">
+  <div class="import-icon">✦</div><h3>Hai file đầu vào (.xlsx)</h3>
+  {% if not ai_enabled %}
+  <div class="preview-alert preview-alert-warn"><strong>Chưa cấu hình Claude API.</strong>
+    <span>Quản trị viên cần đặt biến môi trường <code>ANTHROPIC_API_KEY</code> cho máy chủ rồi khởi động lại ứng dụng.</span></div>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data" class="upload-form ai-plan-form">
+    <label class="file-drop" for="aiBoq"><span class="file-drop-icon">▧</span><strong>Bảng khối lượng (BOQ)</strong><small>.xlsx · tối đa 20 MB</small>
+      <input id="aiBoq" name="boq" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></label>
+    <label class="file-drop" for="aiSchedule"><span class="file-drop-icon">▦</span><strong>File tiến độ thi công</strong><small>.xlsx (xuất từ MS Project hoặc bảng tiến độ) · tối đa 20 MB</small>
+      <input id="aiSchedule" name="schedule" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></label>
+    <label for="aiName">Tên dự án <small>(để trống = AI lấy tên trong file)</small></label>
+    <input id="aiName" name="project_name" type="text" maxlength="200" autocomplete="off" value="{{ typed_name or '' }}" placeholder="Ví dụ: Nhà xưởng KCN Tân Uyên">
+    <label for="aiExtra">Yêu cầu thêm cho AI <small>(không bắt buộc)</small></label>
+    <textarea id="aiExtra" name="extra" rows="3" maxlength="2000" placeholder="Ví dụ: Ngày khởi công 01/11/2026; nghỉ Tết 7 ngày; ưu tiên hoàn thành nhà xưởng trước văn phòng.">{{ typed_extra or '' }}</textarea>
+    <input type="hidden" name="backup" value="yes">
+    <button class="btn btn-primary btn-full" type="submit" {% if not ai_enabled %}disabled{% endif %}>✦ &nbsp; Gửi cho AI lập kế hoạch</button>
+  </form>
+  <div class="inline-note"><span>ⓘ</span> AI thường mất 1–5 phút tuỳ độ dài file. Nội dung hai file được gửi tới Claude API ({{ ai_model }}) để xử lý.</div>
+</section>
+<section class="panel import-side"><div class="panel-head"><div><h3>AI sẽ làm gì?</h3></div></div>
+  <ul class="summary-list ai-steps">
+    <li>Đọc danh sách công việc, mã WBS, ngày bắt đầu/kết thúc từ <b>file tiến độ</b>.</li>
+    <li>Ghép từng công việc với các dòng của <b>BOQ</b> (khối lượng, đơn vị).</li>
+    <li>Đưa các dòng BOQ vào mục <b>Chi phí</b> (khối lượng, đơn giá, thành tiền).</li>
+    <li>Đề xuất nguồn lực, biện pháp, rủi ro khi có căn cứ trong file.</li>
+    <li>Liệt kê những điểm AI <b>chưa chắc chắn</b> để bạn kiểm tra.</li>
+  </ul>
+  <p class="preview-note">Kết quả là một file Excel theo mẫu AZB: bạn xem trước như khi nhập Excel, có thể tải file về sửa tay rồi nhập lại.</p>
+</section></div>
+
+{% elif state == 'running' %}
+<section class="panel ai-wait" aria-live="polite">
+  <div class="ai-spinner" aria-hidden="true"></div>
+  <h3>AI đang đọc file và lập kế hoạch…</h3>
+  <p>{{ files|join(' + ') }}</p>
+  <p class="muted">Đã chạy {{ elapsed // 60 }} phút {{ elapsed % 60 }} giây. Trang tự cập nhật; bạn có thể mở trang khác rồi quay lại bằng đường dẫn này.</p>
+</section>
+
+{% else %}
+<section class="panel ai-wait">
+  <h3>Chưa lập được kế hoạch</h3>
+  <div class="preview-alert preview-alert-warn"><strong>{{ message }}</strong></div>
+  {% if files %}<p class="muted">File: {{ files|join(' + ') }}</p>{% endif %}
+  <a class="btn btn-primary" href="{{ url_for('ai_plan_page') }}">↻ &nbsp; Thử lại</a>
+</section>
+{% endif %}
+{% endblock %}

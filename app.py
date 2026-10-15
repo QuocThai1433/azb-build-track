@@ -1,10 +1,26 @@
 """Entry point: ``python app.py`` starts AZB Project Hub on http://127.0.0.1:5000 (FastAPI + uvicorn)."""
 import logging
 import os
+from pathlib import Path
 
 import uvicorn
 
-from azb_hub.main import app
+
+def load_dotenv(path: Path = Path(__file__).with_name(".env")) -> None:
+    """Load KEY=VALUE lines from ``.env`` into os.environ without overriding variables already set."""
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8-sig").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
+
+load_dotenv()
+
+from azb_hub.main import app  # noqa: E402  (must import after .env is loaded)
 
 
 class QuietAccessLogFilter(logging.Filter):

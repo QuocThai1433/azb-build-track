@@ -9,6 +9,19 @@
   <input type="hidden" name="backup" value="{{ backup }}">
   <input type="hidden" name="file_name" value="{{ file_name }}">
 
+  {% if ai_token %}
+  <section class="panel preview-panel ai-result">
+    <div class="panel-head"><div><h3>✦ Bản nháp do AI lập</h3>
+      <p>Từ {{ ai_files|join(' + ') }}. Kiểm tra số liệu bên dưới trước khi tạo dự án.</p></div>
+      <a class="btn btn-outline" href="{{ url_for('ai_plan_workbook', token=ai_token) }}">↧ &nbsp; Tải file Excel AI tạo</a></div>
+    {% if ai_warnings %}
+    <div class="preview-alert preview-alert-warn"><strong>AI ghi chú {{ ai_warnings|length }} điểm cần kiểm tra:</strong>
+      <ul>{% for w in ai_warnings %}<li>{{ w }}</li>{% endfor %}</ul></div>
+    {% endif %}
+    <p class="preview-note">Muốn sửa nhiều? Tải file Excel về, chỉnh rồi nhập lại ở mục Cập nhật từ Excel.</p>
+  </section>
+  {% endif %}
+
   {% set name_in_file = plan.project.get('name') %}
   {% if updating %}
     <input type="hidden" name="project_name" value="">

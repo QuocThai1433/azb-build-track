@@ -10,6 +10,7 @@ from ..db import get_db
 from ..models import Diary, SafetyLog
 from ..schemas import DiaryForm, HsseForm
 from ..web import flash, redirect, render
+from .deps import require
 
 router = APIRouter()
 
@@ -42,7 +43,7 @@ def hsse_add(request: Request, project_id: int, form: Annotated[HsseForm, Form()
     return redirect(request, "hsse")
 
 
-@router.post("/hsse/{log_id}/delete", name="hsse_delete")
+@router.post("/hsse/{log_id}/delete", name="hsse_delete", dependencies=[Depends(require("record.delete"))])
 def hsse_delete(request: Request, project_id: int, log_id: int, db: Session = Depends(get_db)):
     repo.remove(db, SafetyLog, project_id, log_id)
     flash(request, "Đã xóa nhật ký HSSE.", "success")
@@ -73,7 +74,7 @@ def diary_add(request: Request, project_id: int, form: Annotated[DiaryForm, Form
     return redirect(request, "diary")
 
 
-@router.post("/diary/{log_id}/delete", name="diary_delete")
+@router.post("/diary/{log_id}/delete", name="diary_delete", dependencies=[Depends(require("record.delete"))])
 def diary_delete(request: Request, project_id: int, log_id: int, db: Session = Depends(get_db)):
     repo.remove(db, Diary, project_id, log_id)
     flash(request, "Đã xóa nhật ký.", "success")

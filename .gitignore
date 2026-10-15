@@ -6,3 +6,9 @@ instance/*.db
 instance/*.bak*
 instance/uploads/
 _flask_backup/
+
+# chứa API key cục bộ
+.claude/launch.json
+
+# biến môi trường cục bộ (chứa API key)
+.env

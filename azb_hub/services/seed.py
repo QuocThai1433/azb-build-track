@@ -59,3 +59,31 @@ def seed_if_empty(db: Session) -> bool:
                           notes=h.get("notes")))
     db.commit()
     return True
+
+
+def ensure_admin(db: Session) -> None:
+    """First run with no users: create the admin account.
+
+    The password comes from AZB_ADMIN_PASSWORD. Without it a random one is generated, printed once to the
+    console, and the admin must change it at the first sign-in. The user name comes from AZB_ADMIN_USERNAME.
+    """
+    import os
+    import secrets
+
+    from .. import auth
+    from ..models import User
+
+    if repo.count_users(db):
+        return
+    password = os.environ.get("AZB_ADMIN_PASSWORD", "")
+    generated = not password
+    if generated:
+        password = secrets.token_urlsafe(9)
+    username = os.environ.get("AZB_ADMIN_USERNAME", "admin").strip() or "admin"
+    db.add(User(username=username, full_name="Quản trị viên", password_hash=auth.hash_password(password),
+                role=auth.ADMIN, must_change_password=generated,
+                created_at=datetime.now().isoformat(timespec="seconds")))
+    db.commit()
+    if generated:
+        print(f"[AZB] Đã tạo tài khoản quản trị. Tên đăng nhập: {username}  Mật khẩu tạm: {password}  "
+              "(chỉ hiện một lần, sẽ phải đổi khi đăng nhập)")

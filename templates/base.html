@@ -14,7 +14,7 @@
 <body>
 <div class="shell">
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="{{ url_for('dashboard') }}">
+    <a class="brand" href="{{ url_for('home') }}" title="Trang chủ">
       <span class="brand-mark">AZB</span>
       <span class="brand-text"><strong>AZB</strong><small>PROJECT HUB</small></span>
     </a>
@@ -27,7 +27,7 @@
         {% for p in projects %}<a class="project-menu-item{% if project and p.id == project.id %} is-current{% endif %}" href="{{ url_for('dashboard', project_id=p.id) }}"><span class="project-menu-dot"></span><span class="project-menu-text"><b>{{ p.name }}</b><small>{{ p.package_name or 'Dự án thi công' }}</small></span>{% if project and p.id == project.id %}<span class="project-menu-check" aria-label="Đang mở">✓</span>{% endif %}</a>{% endfor %}
         </div>
         <div class="project-menu-actions">
-          <a href="{{ url_for('project_new') }}">＋ Thêm dự án mới</a>
+          {% if can('project.create') %}<a href="{{ url_for('project_new') }}">＋ Thêm dự án mới</a>{% endif %}
           <a href="{{ url_for('projects_list') }}">☰ Quản lý danh sách dự án</a>
         </div>
       </div>
@@ -54,8 +54,9 @@
     <nav class="nav-group">
       <div class="nav-caption">DỮ LIỆU & BÁO CÁO</div>
       <a class="nav-link {% if active_endpoint=='reports' or active_endpoint=='export_xlsx' %}active{% endif %}" href="{{ url_for('reports') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12M12 20V4M19 20V8"/><path d="M3.5 20h17"/></svg></span><span>Báo cáo & xuất file</span></a>
-      <a class="nav-link {% if active_endpoint=='import_page' %}active{% endif %}" href="{{ url_for('import_page') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></span><span>Nhập dữ liệu Excel</span></a>
+      {% if can('import.run') %}<a class="nav-link {% if active_endpoint=='import_page' %}active{% endif %}" href="{{ url_for('import_page') }}"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></span><span>Cập nhật từ Excel</span></a>{% endif %}
     </nav>
+    {% if can('audit.view') %}<nav class="nav-group"><div class="nav-caption">QUẢN TRỊ</div><a class="nav-link {% if active_endpoint.startswith('audit') %}active{% endif %}" href="{{ url_for('audit_logs') }}"><span>Nhật ký hoạt động</span></a>{% if can('users.manage') %}<a class="nav-link {% if active_endpoint.startswith('user') %}active{% endif %}" href="{{ url_for('users_list') }}"><span>Tài khoản & phân quyền</span></a>{% endif %}</nav>{% endif %}
     <div class="sidebar-bottom"><div class="online-dot"></div><span>Ứng dụng nội bộ</span><span class="version">v{{ app_version }}</span></div>
   </aside>
   <main class="main-area">
@@ -63,7 +64,7 @@
       <button class="mobile-menu" id="mobileMenu" aria-label="Mở menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <div class="breadcrumb"><span>AZB Project Hub</span><b>/</b><strong>{{ title or 'Tổng quan' }}</strong></div>
       <div class="global-search" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="globalSearch" type="search" placeholder="Tìm nhanh chức năng…" aria-label="Tìm nhanh chức năng"><kbd>Ctrl K</kbd><div id="searchResults" class="search-results" hidden></div></div>
-      <div class="topbar-right"><span class="live-tag"><i></i> HỆ THỐNG ĐANG HOẠT ĐỘNG</span><div class="top-divider"></div><div class="user-avatar">AZ</div><div class="user-meta"><strong>Ban quản lý dự án</strong><small>Không gian làm việc nội bộ</small></div></div>
+      <div class="topbar-right"><span class="live-tag"><i></i> HỆ THỐNG ĐANG HOẠT ĐỘNG</span><div class="top-divider"></div><div class="user-avatar">{{ ((current_user.full_name or current_user.username)[:2])|upper if current_user else 'AZ' }}</div><div class="user-meta"><strong>{{ (current_user.full_name or current_user.username) if current_user else '' }}</strong><small>{{ role_label }}</small></div>{% if can('users.manage') %}<a class="notif-btn" href="{{ url_for('users_list') }}" title="{{ pending_users }} tài khoản đăng ký chờ duyệt" aria-label="Tài khoản chờ duyệt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-4.7 0-8.5 3.4-8.5 7.7 0 2.4 1.2 4.5 3.1 5.9V20l3-1.7c.8.2 1.5.3 2.4.3 4.7 0 8.5-3.4 8.5-7.7S16.7 3.5 12 3.500Z"/><path d="m7.5 12.8 3-3.2 2 2 3-2.800"/></svg>{% if pending_users %}<span class="notif-count">{{ pending_users if pending_users < 100 else '99+' }}</span>{% endif %}</a>{% endif %}{% if current_user %}<a class="btn btn-ghost btn-sm" href="{{ url_for('account_password') }}">Đổi mật khẩu</a><form method="post" action="{{ url_for('logout') }}"><button class="btn btn-outline btn-sm" type="submit">Đăng xuất</button></form>{% endif %}</div>
     </header>
     <section class="page-content">
       {% with messages = get_flashed_messages(with_categories=true) %}

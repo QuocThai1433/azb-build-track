@@ -207,7 +207,8 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid 
 .empty-value.needs { color: #a56a00; font-style: normal; font-weight: 600; }
 
 /* Add-project page */
-.new-project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.new-project-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .new-project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 860px) { .new-project-grid { grid-template-columns: minmax(0, 1fr); } }
 .new-project-card { padding: 24px; display: grid; gap: 10px; }
 .new-project-card h3 { margin: 4px 0 0; font-size: 18px; }
@@ -219,3 +220,26 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:3px solid 
 .new-project-form input[type="text"]:focus { outline: none; border-color: var(--ultra-primary); box-shadow: 0 0 0 3px rgba(54, 95, 229, .12); }
 .new-project-form .btn { margin-top: 6px; }
 .import-icon-plain { background: #eef2f8; color: #36507a; }
+.import-icon-ai { background: #f1ecff; color: #5b3fd0; }
+
+/* AI planning */
+.ai-plan-form { display: grid; gap: 10px; }
+.ai-plan-form > label:not(.file-drop) { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.ai-plan-form label small { font-weight: 400; color: var(--ultra-muted); }
+.ai-plan-form input[type="text"], .ai-plan-form textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--ultra-line); border-radius: 10px; font: inherit; font-size: 14px; background: #fff; resize: vertical; }
+.ai-steps li { display: list-item; margin-left: 18px; line-height: 1.55; }
+.ai-wait { padding: 32px 24px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.ai-wait h3 { margin: 0; }
+.ai-wait p { margin: 0; }
+.ai-spinner { width: 42px; height: 42px; border-radius: 50%; border: 4px solid #e4e9f2; border-top-color: var(--ultra-primary); animation: ai-spin 1s linear infinite; }
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ai-spinner { animation-duration: 3s; } }
+.ai-result ul { margin: 6px 0 0 18px; padding: 0; }
+.ai-result li { margin: 2px 0; }
+
+/* notification bell: pending self-registered accounts (admin) */
+.notif-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:#e4e6eb;color:#050505;flex:none}
+.notif-btn:hover{background:#d8dadf}
+.notif-btn svg{width:20px;height:20px;fill:currentColor;stroke:none}
+.notif-btn svg path:last-child{fill:none;stroke:#e4e6eb;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.notif-count{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e41e3f;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;box-sizing:border-box}

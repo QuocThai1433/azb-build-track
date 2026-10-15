@@ -376,10 +376,11 @@ def _new_project_from_sample(client, **data):
     return project_id_from(r.headers["location"]), r
 
 
-def test_import_page_offers_new_or_update(client):
+def test_import_page_only_updates_current_project(client):
     page = client.get("/nha-may-san-xuat-cac-san-pham-sau-thep/import").text
-    assert 'name="mode" value="new" checked' in page
     assert 'name="mode" value="update"' in page
+    assert 'name="mode" value="new"' not in page
+    assert 'name="project_name"' not in page
 
 
 def test_import_creates_a_new_project_and_leaves_old_one_alone(client):
@@ -449,13 +450,12 @@ def test_unknown_project_is_404(client):
     assert client.get("/khong-co-du-an-nay/").status_code == 404
 
 
-def test_home_opens_the_last_project(client):
+def test_home_is_a_page_not_a_redirect_to_the_last_project(client):
     new_id, _ = _new_project_from_sample(client)
     client.get(f"{u(new_id)}/gantt")
     r = client.get("/")
-    assert r.status_code == 303 and r.headers["location"] == f"{u(new_id)}/"
-    client.get("/nha-may-san-xuat-cac-san-pham-sau-thep/costs")
-    assert client.get("/").headers["location"] == "/nha-may-san-xuat-cac-san-pham-sau-thep/"
+    assert r.status_code == 200 and "Bạn muốn xem dự án nào?" in r.text
+    assert f'href="{u(new_id)}/"' in r.text                              # the project is a card on the home page
 
 
 def test_archive_hides_project_from_menu_and_restore_brings_it_back(client):
@@ -921,7 +921,7 @@ def test_last_project_cannot_be_deleted(client, monkeypatch):
     new_id, _ = _new_project_from_sample(client)
     with SessionLocal() as db:
         only = repo.get_project(db, new_id)
-    monkeypatch.setattr(repo, "list_projects", lambda db, include_archived=False: [only])
+    monkeypatch.setattr(repo, "list_projects", lambda db, include_archived=False, **_: [only])
     page = follow(client, client.post(f"{u(new_id)}/delete"))
     assert "Không thể xoá dự án cuối cùng" in page.text
     monkeypatch.undo()
@@ -975,7 +975,7 @@ def test_legacy_database_is_upgraded_without_losing_data(tmp_path):
     assert result.returncode == 0, result.stderr
 
     con = sqlite3.connect(db_file)
-    assert con.execute("select version_num from alembic_version").fetchone() == ("0004",)
+    assert con.execute("select version_num from alembic_version").fetchone() == ("0005",)
     assert con.execute("select count(*) from import_aliases").fetchone() == (0,)
     assert con.execute("select title, priority, project_id from tasks").fetchall() == [
         ("Việc cũ chưa có cột priority", "Trung bình", 1)]

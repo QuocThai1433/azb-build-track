@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading"><div class="eyebrow">QUẢN TRỊ HỆ THỐNG</div><h1>{{ title }}</h1></div>
+<form method="post" class="panel standalone-form"><div class="form-grid two-col">
+  <div class="field"><label>Tên đăng nhập <em>*</em></label><input name="username" value="{{ item.username if item else '' }}" {% if item %}readonly{% else %}required{% endif %}></div>
+  <div class="field"><label>Họ tên</label><input name="full_name" value="{{ item.full_name if item else '' }}"></div>
+  <div class="field"><label>Vai trò</label><select name="role">{% for value, label in roles %}<option value="{{ value }}" {% if item and item.role == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><small>Giám đốc và quản trị viên xem được mọi dự án. Nhân viên chỉ thấy dự án được giao.</small></div>
+  <div class="field"><label>{% if item %}Đặt lại mật khẩu (bỏ trống nếu giữ nguyên){% else %}Mật khẩu tạm (từ 8 ký tự) <em>*</em>{% endif %}</label><input name="password" type="password" autocomplete="new-password" {% if not item %}required{% endif %}></div>
+  {% if item %}<div class="field"><label><input type="checkbox" name="is_active" value="1" {% if item.is_active %}checked{% endif %}> Cho phép đăng nhập</label></div>{% endif %}
+  <div class="field full"><label>Dự án được giao (áp dụng cho Nhân viên)</label>
+    {% for p in all_projects %}<label class="check-line"><input type="checkbox" name="projects" value="{{ p.id }}" {% if p.id in assigned %}checked{% endif %}> {{ p.name }}{% if p.status != 'active' %} <small>(đã lưu trữ)</small>{% endif %}</label>{% else %}<small>Chưa có dự án nào.</small>{% endfor %}
+  </div>
+</div>
+<div class="form-actions"><button class="btn btn-primary" type="submit">✓ &nbsp; Lưu tài khoản</button><a class="btn btn-ghost" href="{{ url_for('users_list') }}">Hủy</a></div></form>
+{% endblock %}

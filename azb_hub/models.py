@@ -5,7 +5,7 @@ Version 0002: the app holds many projects. Every data table has a ``project_id``
 """
 from __future__ import annotations
 
-from sqlalchemy import REAL, ForeignKey, Index, Integer, Text, UniqueConstraint, event, select
+from sqlalchemy import REAL, Boolean, ForeignKey, Index, Integer, Text, UniqueConstraint, event, false, select, true
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base
@@ -36,6 +36,8 @@ class Project(Base):
     source_file: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active", server_default="active")
+    construction_status: Mapped[str] = mapped_column(Text, nullable=False, default="dang_thi_cong",
+                                                     server_default="dang_thi_cong")
     created_at: Mapped[str | None] = mapped_column(Text)
 
 
@@ -101,6 +103,10 @@ class Cost(Base):
     actual_amount: Mapped[float | None] = mapped_column(REAL, default=0.0, server_default="0")
     notes: Mapped[str | None] = mapped_column(Text)
     source_row: Mapped[int | None] = mapped_column(Integer)
+    approval_status: Mapped[str] = mapped_column(Text, nullable=False, default="da_duyet", server_default="da_duyet")
+    approved_by: Mapped[str | None] = mapped_column(Text)
+    approved_at: Mapped[str | None] = mapped_column(Text)
+    approval_note: Mapped[str | None] = mapped_column(Text)
 
 
 class Risk(Base):
@@ -209,3 +215,52 @@ def _fill_slug(_mapper, connection, project: Project) -> None:
         taken = set(connection.execute(select(Project.slug)).scalars())
         project.slug = slugs.unique_slug(project.name, taken)
     slugs.clear_cache()
+
+
+class User(Base):
+    """A person who signs in. role: admin / giam_doc / nhan_vien (see auth.py)."""
+    __tablename__ = "users"
+    __table_args__ = {"sqlite_autoincrement": True}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    full_name: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    role: Mapped[str] = mapped_column(Text, nullable=False, default="nhan_vien", server_default="nhan_vien")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
+    must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False,
+                                                       server_default=false())
+    created_at: Mapped[str | None] = mapped_column(Text)
+    last_login_at: Mapped[str | None] = mapped_column(Text)
+
+
+class ProjectMember(Base):
+    """Which staff member works on which project."""
+    __tablename__ = "project_members"
+
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE",
+                                                             name="fk_project_members_user_id"), primary_key=True)
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey("project.id", ondelete="CASCADE",
+                                                                name="fk_project_members_project_id"),
+                                            primary_key=True)
+    role_in_project: Mapped[str] = mapped_column(Text, nullable=False, default="Thành viên",
+                                                 server_default="Thành viên")
+
+
+class AuditLog(Base):
+    """Append-only history of changes. The database refuses UPDATE and DELETE (see migration 0005)."""
+    __tablename__ = "audit_logs"
+    __table_args__ = {"sqlite_autoincrement": True}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int | None] = mapped_column(Integer)
+    username: Mapped[str | None] = mapped_column(Text)
+    action: Mapped[str] = mapped_column(Text, nullable=False)
+    entity_type: Mapped[str | None] = mapped_column(Text)
+    entity_id: Mapped[int | None] = mapped_column(Integer)
+    project_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    old_value: Mapped[str | None] = mapped_column(Text)
+    new_value: Mapped[str | None] = mapped_column(Text)
+    ip_address: Mapped[str | None] = mapped_column(Text)
+    user_agent: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[str] = mapped_column(Text, nullable=False, index=True)

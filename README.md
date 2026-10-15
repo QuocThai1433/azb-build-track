@@ -52,6 +52,26 @@ Nếu máy không có Python 3.12 nhưng đã có Python khác, dùng `py -m ven
 
 Sau khi terminal cho biết Flask đang chạy, truy cập **http://127.0.0.1:5000**.
 
+## Đăng nhập, phân quyền và nhật ký hoạt động
+
+Ứng dụng yêu cầu đăng nhập. Có 3 vai trò:
+
+| Vai trò | Quyền |
+| --- | --- |
+| `admin` | Toàn quyền: quản lý tài khoản, giao dự án, xem nhật ký, xem mọi dự án. |
+| `giam_doc` | Xem mọi dự án, tạo/lưu trữ/xóa dự án, duyệt chi phí, nhập/xuất Excel, xem nhật ký. |
+| `nhan_vien` | Chỉ xem và nhập liệu ở dự án được giao. Không xóa, không duyệt chi phí, không nhập/xuất Excel, không xem nhật ký. |
+
+Biến môi trường:
+
+- `AZB_ADMIN_USERNAME` (mặc định `admin`) và `AZB_ADMIN_PASSWORD`: tạo tài khoản quản trị ở lần chạy đầu khi chưa có người dùng.
+  Nếu không đặt mật khẩu, hệ thống tạo mật khẩu ngẫu nhiên, in **một lần** ra cửa sổ chạy và bắt đổi ở lần đăng nhập đầu.
+- `PROJECT_MANAGER_SECRET`: khóa ký phiên đăng nhập. Hãy đặt giá trị riêng; ứng dụng cảnh báo nếu còn dùng giá trị mặc định.
+
+Mọi thao tác thêm/sửa/xóa, đăng nhập (kể cả sai), nhập/xuất Excel, duyệt chi phí và bị từ chối quyền đều được ghi vào bảng
+`audit_logs` (chỉ thêm, CSDL từ chối sửa/xóa). Xem tại menu **Nhật ký hoạt động** (`/audit-logs`), có lọc và xuất Excel.
+Sau 5 lần nhập sai mật khẩu, tài khoản tạm khóa 15 phút.
+
 ## 4. Dữ liệu được lưu ở đâu?
 
 - `data/seed_data.json`: dữ liệu khởi tạo trích từ workbook nguồn.

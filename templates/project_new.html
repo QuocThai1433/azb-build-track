@@ -22,6 +22,18 @@
   </section>
 
   <section class="panel new-project-card">
+    <div class="import-icon import-icon-ai">✦</div>
+    <h3>Lập kế hoạch bằng AI</h3>
+    <p>Tải lên <b>bảng khối lượng</b> và <b>file tiến độ</b>. AI đọc hai file, ghép khối lượng với công việc và dựng bản nháp dự án để bạn xem trước.</p>
+    {% if upload_host %}
+      <a class="btn btn-primary btn-full" href="{{ url_for('ai_plan_page', project_id=upload_host) }}">✦ &nbsp; Bắt đầu với AI</a>
+      {% if not ai_enabled %}<p class="muted"><small>Chưa cấu hình Claude API (ANTHROPIC_API_KEY).</small></p>{% endif %}
+    {% else %}
+    <p class="muted">Hãy tạo một dự án trống trước.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel new-project-card">
     <div class="import-icon import-icon-plain">＋</div>
     <h3>Dự án trống</h3>
     <p>Chỉ cần nhập tên. Bạn thêm công việc, chi phí… bằng tay, hoặc nhập Excel vào sau.</p>

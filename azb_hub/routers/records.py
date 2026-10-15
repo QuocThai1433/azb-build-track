@@ -8,10 +8,12 @@ from sqlalchemy.orm import Session
 
 from .. import repositories as repo
 from ..constants import PRIORITIES, RISK_STATUSES
+from .. import auth
 from ..db import get_db
 from ..models import Cost, Method, Resource, Risk
 from ..schemas import CostForm, MethodForm, ResourceForm, RiskForm
 from ..web import flash, or_404, redirect, render
+from .deps import require
 
 router = APIRouter()
 
@@ -46,6 +48,8 @@ def register(c: Crud) -> None:
 
     def create(request: Request, project_id: int, form: FormBody, db: Session = Depends(get_db)):
         values = c.prepare(form.model_dump(), True)
+        if c.model is Cost:       # a cost entered by staff waits for the director's approval
+            values["approval_status"] = "da_duyet" if auth.can(request.state.user, "cost.approve") else "cho_duyet"
         if not str(values[c.required_field] or "").strip():
             flash(request, c.required_message, "error")
             return page(request, c.new_title, None)
@@ -58,7 +62,10 @@ def register(c: Crud) -> None:
 
     def save(request: Request, project_id: int, record_id: int, form: FormBody, db: Session = Depends(get_db)):
         item = or_404(repo.get(db, c.model, project_id, record_id))
-        repo.update(db, item, c.prepare(form.model_dump(), False))
+        values = c.prepare(form.model_dump(), False)
+        if c.model is Cost and not auth.can(request.state.user, "cost.approve"):
+            values.update(approval_status="cho_duyet", approved_by=None, approved_at=None, approval_note=None)
+        repo.update(db, item, values)
         flash(request, c.updated, "success")
         return redirect(request, c.list_route)
 
@@ -71,7 +78,8 @@ def register(c: Crud) -> None:
     router.add_api_route(f"{c.path}/new", create, methods=["POST"], name=f"{c.prefix}_new", include_in_schema=False)
     router.add_api_route(f"{c.path}/{{record_id}}/edit", edit_page, methods=["GET"], name=f"{c.prefix}_edit", include_in_schema=False)
     router.add_api_route(f"{c.path}/{{record_id}}/edit", save, methods=["POST"], name=f"{c.prefix}_edit", include_in_schema=False)
-    router.add_api_route(f"{c.path}/{{record_id}}/delete", delete, methods=["POST"], name=f"{c.prefix}_delete", include_in_schema=False)
+    router.add_api_route(f"{c.path}/{{record_id}}/delete", delete, methods=["POST"], name=f"{c.prefix}_delete",
+                         include_in_schema=False, dependencies=[Depends(require("record.delete"))])
 
 
 def _risk_values(values: dict[str, Any], creating: bool) -> dict[str, Any]:
@@ -136,3 +144,18 @@ def risks_list(request: Request, project_id: int, db: Session = Depends(get_db),
 def methods_list(request: Request, project_id: int, db: Session = Depends(get_db), q: str = ""):
     q = q.strip()
     return render(request, "methods.html", title="Biện pháp thi công", items=repo.list_methods(db, project_id, q), q=q)
+
+
+@router.post("/costs/{record_id}/approval", name="cost_approval", dependencies=[Depends(require("cost.approve"))])
+def cost_approval(request: Request, project_id: int, record_id: int, decision: Annotated[str, Form()] = "",
+                  note: Annotated[str, Form()] = "", db: Session = Depends(get_db)):
+    """The director approves or rejects a cost entered by staff. Both are written to the audit log."""
+    item = or_404(repo.get(db, Cost, project_id, record_id))
+    if decision not in ("approve", "reject"):
+        flash(request, "Quyết định duyệt không hợp lệ.", "error")
+        return redirect(request, "costs_list")
+    user = request.state.user
+    repo.set_cost_approval(db, item, "da_duyet" if decision == "approve" else "tu_choi",
+                           user.full_name or user.username, note.strip()[:300])
+    flash(request, "Đã duyệt khoản chi." if decision == "approve" else "Đã từ chối khoản chi.", "success")
+    return redirect(request, "costs_list")
