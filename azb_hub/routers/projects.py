@@ -6,9 +6,12 @@ from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy.orm import Session
 
 from .. import repositories as repo
+from .. import audit
 from ..db import get_db
+from ..services import ai_planner
 from ..services import backup as backup_service
 from ..web import flash, or_404, redirect, render
+from .deps import require
 
 router = APIRouter()
 
@@ -17,26 +20,13 @@ DATA_LABELS = (("tasks", "công việc"), ("costs", "khoản chi"), ("risks", "r
                ("diary", "nhật ký"))
 
 
-@router.get("/", name="home")
-def home(request: Request, db: Session = Depends(get_db)):
-    """Open the project the user used last; else the first active project; else the project list."""
-    last = request.session.get("last_project")
-    project = repo.get_project(db, last) if isinstance(last, int) else None
-    if project is None or project.status != repo.ACTIVE:
-        pid = repo.first_active_project_id(db)
-        if pid is None:
-            return redirect(request, "projects_list")
-        return redirect(request, "dashboard", project_id=pid)
-    return redirect(request, "dashboard", project_id=project.id)
-
-
 @router.get("/projects", name="projects_list")
 def projects_list(request: Request, db: Session = Depends(get_db)):
     counts = repo.data_counts_by_project(db)
     summaries = {pid: ", ".join(f"{c[key]} {label}" for key, label in DATA_LABELS if c.get(key))
                  for pid, c in counts.items()}
     return render(request, "projects.html", title="Danh sách dự án",
-                  all_projects=repo.list_projects(db, include_archived=True),
+                  all_projects=repo.list_projects(db, include_archived=True, user=request.state.user),
                   data_counts=counts, summaries=summaries)
 
 
@@ -45,15 +35,16 @@ def _new_project_page(request: Request, db: Session, name: str = ""):
     creates a NEW project when mode is "new", so any existing project can host the form."""
     projects = repo.list_projects(db, include_archived=True)
     host = repo.first_active_project_id(db) or (projects[0].id if projects else None)
-    return render(request, "project_new.html", title="Thêm dự án mới", upload_host=host, typed_name=name)
+    return render(request, "project_new.html", title="Thêm dự án mới", upload_host=host, typed_name=name,
+                  ai_enabled=ai_planner.ai_enabled())
 
 
-@router.get("/projects/new", name="project_new")
+@router.get("/projects/new", name="project_new", dependencies=[Depends(require("project.create"))])
 def project_new(request: Request, db: Session = Depends(get_db)):
     return _new_project_page(request, db)
 
 
-@router.post("/projects/new", name="project_new")
+@router.post("/projects/new", name="project_new", dependencies=[Depends(require("project.create"))])
 def project_create_empty(request: Request, name: Annotated[str, Form()] = "", db: Session = Depends(get_db)):
     """An empty project with just a name. Everything else can be filled in later or imported from Excel."""
     name = name.strip()
@@ -63,15 +54,18 @@ def project_create_empty(request: Request, name: Annotated[str, Form()] = "", db
     project = repo.new_project({"name": name[:200], "client": "", "contractor": "", "package_name": "",
                                 "description": "", "report_date": date.today().isoformat(), "contract_value": 0,
                                 "prelim_budget": 0, "planned_progress": 0, "source_file": None,
-                                "notes": "Tạo thủ công. Có thể nhập dữ liệu từ Excel ở mục Nhập dữ liệu Excel."})
+                                "notes": "Tạo thủ công. Có thể nhập dữ liệu từ Excel ở mục Cập nhật từ Excel."})
     db.add(project)
+    db.flush()
+    audit.add(db, "create", "project", project.id, project.id, new={"name": project.name})
     db.commit()
     flash(request, f"Đã tạo dự án “{project.name}”. Dự án đang trống, bạn có thể nhập dữ liệu từ Excel hoặc thêm tay.",
           "success")
     return redirect(request, "dashboard", project_id=project.id)
 
 
-@router.post("/{project_id:project}/archive", name="project_archive")
+@router.post("/{project_id:project}/archive", name="project_archive",
+             dependencies=[Depends(require("project.archive"))])
 def project_archive(request: Request, project_id: int, db: Session = Depends(get_db)):
     project = or_404(repo.get_project(db, project_id))
     repo.set_project_status(db, project_id, repo.ARCHIVED)
@@ -81,7 +75,8 @@ def project_archive(request: Request, project_id: int, db: Session = Depends(get
     return redirect(request, "projects_list")
 
 
-@router.post("/{project_id:project}/restore", name="project_restore")
+@router.post("/{project_id:project}/restore", name="project_restore",
+             dependencies=[Depends(require("project.archive"))])
 def project_restore(request: Request, project_id: int, db: Session = Depends(get_db)):
     project = or_404(repo.get_project(db, project_id))
     repo.set_project_status(db, project_id, repo.ACTIVE)
@@ -89,7 +84,8 @@ def project_restore(request: Request, project_id: int, db: Session = Depends(get
     return redirect(request, "projects_list")
 
 
-@router.post("/{project_id:project}/delete", name="project_delete")
+@router.post("/{project_id:project}/delete", name="project_delete",
+             dependencies=[Depends(require("project.delete"))])
 def project_delete(request: Request, project_id: int, db: Session = Depends(get_db)):
     """Delete a project for good. The user confirms in a dialog before this is sent.
     Checked in this order: never the last project, then a database backup is made first.

@@ -1,0 +1,21 @@
+{% extends 'base_public.html' %}{% block content %}
+<div class="landing">
+  <header class="landing-top">
+    <div class="login-brand"><span class="brand-mark">AZB</span><div><strong>AZB Project Hub</strong><small>Quản lý kế hoạch thi công</small></div></div>
+    <a class="btn landing-top-btn" href="{{ url_for('login') }}">Đăng nhập →</a>
+  </header>
+  <main class="landing-hero">
+    <h1>Quản Lý Kế Hoạch Thi Công</h1>
+    <p>Tiến độ, nhật ký, chi phí và an toàn của mọi công trình ở một nơi.</p>
+    <a class="btn btn-primary landing-cta" href="{{ url_for('login') }}">Đăng nhập để bắt đầu</a>
+    <a class="landing-register" href="{{ url_for('register') }}">Nhân viên chưa có tài khoản? Đăng ký tại đây →</a>
+    <section class="landing-modules">
+      <div class="landing-module"><span>▦</span><strong>Gantt</strong><small>Tiến độ hạng mục</small></div>
+      <div class="landing-module"><span>✎</span><strong>Nhật ký</strong><small>Ghi chép hằng ngày</small></div>
+      <div class="landing-module"><span>₫</span><strong>Chi phí</strong><small>Duyệt và theo dõi</small></div>
+      <div class="landing-module"><span>⛑</span><strong>HSSE</strong><small>An toàn, rủi ro</small></div>
+    </section>
+  </main>
+  <footer class="landing-foot">Công cụ nội bộ AZB · Cần tài khoản? Liên hệ quản trị viên</footer>
+</div>
+{% endblock %}

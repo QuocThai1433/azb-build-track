@@ -6,16 +6,17 @@ afterwards never races its own commit.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Any, TypeVar
 
 from sqlalchemy import Text, and_, case, cast, delete, func, or_, select
 from sqlalchemy.orm import Session
 
-from . import slugs
+from . import audit, slugs
 from .constants import CLOSED_RISK_STATUSES, SUMMARY_TASK_TYPE
-from .models import (Base, Cost, Diary, HsseMetric, ImportAlias, Method, Project, Resource, Risk, SafetyLog,
-                     Task)
+from .models import (AuditLog, Base, Cost, Diary, HsseMetric, ImportAlias, Method, Project, ProjectMember, Resource, Risk,
+                     SafetyLog, Task, User)
 
 M = TypeVar("M", bound=Base)
 
@@ -31,20 +32,34 @@ def get(db: Session, model: type[M], project_id: int, record_id: int) -> M | Non
     return obj if obj is not None and obj.project_id == project_id else None
 
 
+def _log_project_id(obj: Base) -> int | None:
+    pid = getattr(obj, "project_id", None)
+    return pid if pid is not None else (obj.id if isinstance(obj, Project) else None)
+
+
 def create(db: Session, model: type[M], project_id: int, values: dict[str, Any]) -> M:
     obj = model(project_id=project_id, **values)
     db.add(obj)
+    db.flush()                                    # assigns obj.id, so the log row can name it
+    audit.add(db, "create", model.__tablename__, obj.id, project_id, new=to_dict(obj))
     db.commit()
     return obj
 
 
 def update(db: Session, obj: Base, values: dict[str, Any]) -> None:
+    before = to_dict(obj)
     for key, value in values.items():
         setattr(obj, key, value)
+    old, new = audit.diff(before, to_dict(obj))
+    if new:
+        audit.add(db, "update", obj.__tablename__, obj.id, _log_project_id(obj), old=old, new=new)
     db.commit()
 
 
 def remove(db: Session, model: type[Base], project_id: int, record_id: int) -> None:
+    obj = get(db, model, project_id, record_id)
+    if obj is not None:
+        audit.add(db, "delete", model.__tablename__, record_id, project_id, old=to_dict(obj))
     db.execute(delete(model).where(model.id == record_id, model.project_id == project_id))
     db.commit()
 
@@ -67,11 +82,18 @@ def get_project(db: Session, project_id: int) -> Project | None:
     return db.get(Project, project_id)
 
 
-def list_projects(db: Session, include_archived: bool = False) -> list[Project]:
+def list_projects(db: Session, include_archived: bool = False, user: User | None = None) -> list[Project]:
+    """Projects in id order. With ``user`` set, a staff member (nhan_vien) only gets the projects assigned to them."""
     stmt = select(Project).order_by(Project.id)
     if not include_archived:
         stmt = stmt.where(Project.status == ACTIVE)
+    if user is not None and user.role == "nhan_vien":
+        stmt = stmt.where(Project.id.in_(select(ProjectMember.project_id).where(ProjectMember.user_id == user.id)))
     return list(db.scalars(stmt))
+
+
+def is_member(db: Session, user_id: int, project_id: int) -> bool:
+    return db.get(ProjectMember, (user_id, project_id)) is not None
 
 
 def first_active_project_id(db: Session) -> int | None:
@@ -108,6 +130,9 @@ def data_counts_by_project(db: Session) -> dict[int, dict[str, int]]:
 
 def delete_project(db: Session, project_id: int) -> None:
     """Delete a project. The database removes its rows in every data table (ON DELETE CASCADE)."""
+    project = db.get(Project, project_id)
+    if project is not None:
+        audit.add(db, "delete", "project", project_id, project_id, old=to_dict(project))
     db.execute(delete(Project).where(Project.id == project_id))
     db.commit()
     slugs.clear_cache()
@@ -248,6 +273,18 @@ def list_costs(db: Session, project_id: int, q: str = "") -> list[Cost]:
     return list(db.scalars(stmt.order_by(Cost.budget_amount.desc())))
 
 
+def set_cost_approval(db: Session, cost: Cost, status: str, approver: str, note: str = "") -> None:
+    """Approve (da_duyet) or reject (tu_choi) a cost. Logged as one "approve" / "reject" row."""
+    before = to_dict(cost)
+    cost.approval_status = status
+    cost.approved_by = approver
+    cost.approved_at = datetime.now().isoformat(timespec="seconds")
+    cost.approval_note = note or None
+    old, new = audit.diff(before, to_dict(cost))
+    audit.add(db, "approve" if status == "da_duyet" else "reject", "costs", cost.id, cost.project_id, old=old, new=new)
+    db.commit()
+
+
 def cost_totals(db: Session, project_id: int) -> dict[str, float]:
     row = db.execute(select(func.coalesce(func.sum(Cost.budget_amount), 0).label("budget"),
                             func.coalesce(func.sum(Cost.actual_amount), 0).label("actual"))
@@ -327,3 +364,122 @@ def diary_entries(db: Session, project_id: int, limit: int | None = None) -> lis
     if limit:
         stmt = stmt.limit(limit)
     return list(db.scalars(stmt))
+
+
+# ---- users and project membership ------------------------------------------------------------
+
+def get_user(db: Session, user_id: int) -> User | None:
+    return db.get(User, user_id)
+
+
+def get_user_by_username(db: Session, username: str) -> User | None:
+    return db.scalar(select(User).where(func.lower(User.username) == username.strip().lower()))
+
+
+def list_users(db: Session) -> list[User]:
+    return list(db.scalars(select(User).order_by(User.role, User.username)))
+
+
+def count_users(db: Session) -> int:
+    return db.scalar(select(func.count()).select_from(User)) or 0
+
+
+def member_project_ids(db: Session, user_id: int) -> set[int]:
+    return set(db.scalars(select(ProjectMember.project_id).where(ProjectMember.user_id == user_id)))
+
+
+def set_memberships(db: Session, user_id: int, project_ids: set[int]) -> None:
+    """Make the user's assigned projects exactly ``project_ids``. The caller commits."""
+    db.execute(delete(ProjectMember).where(ProjectMember.user_id == user_id))
+    for pid in sorted(project_ids):
+        db.add(ProjectMember(user_id=user_id, project_id=pid))
+
+
+# ---- numbers for the home page: one grouped query each, for every project at once ------------
+
+def progress_by_project(db: Session) -> dict[int, float]:
+    """{project_id: average actual progress 0-100 of the tasks someone has updated}."""
+    stmt = (select(Task.project_id, func.avg(Task.actual_progress))
+            .where(Task.task_type != SUMMARY_TASK_TYPE, Task.updated_at.is_not(None)).group_by(Task.project_id))
+    return {pid: float(avg or 0) for pid, avg in db.execute(stmt)}
+
+
+def overdue_tasks_by_project(db: Session, today: str) -> dict[int, int]:
+    stmt = (select(Task.project_id, func.count())
+            .where(Task.task_type != SUMMARY_TASK_TYPE, Task.end_date.is_not(None), Task.end_date < today,
+                   Task.actual_status != "Hoàn thành").group_by(Task.project_id))
+    return {pid: n for pid, n in db.execute(stmt)}
+
+
+def cost_sums_by_project(db: Session) -> dict[int, tuple[float, float]]:
+    stmt = (select(Cost.project_id, func.coalesce(func.sum(Cost.budget_amount), 0),
+                   func.coalesce(func.sum(Cost.actual_amount), 0)).group_by(Cost.project_id))
+    return {pid: (float(budget), float(actual)) for pid, budget, actual in db.execute(stmt)}
+
+
+def open_high_risks_by_project(db: Session) -> dict[int, int]:
+    stmt = (select(Risk.project_id, func.count()).where(Risk.severity == "Cao", _OPEN_RISK)
+            .group_by(Risk.project_id))
+    return {pid: n for pid, n in db.execute(stmt)}
+
+
+# ---- audit log (read only) -------------------------------------------------------------------
+
+def _audit_where(user_id: int | None, project_id: int | None, action: str, date_from: str, date_to: str) -> list:
+    conditions = []
+    if user_id is not None:
+        conditions.append(AuditLog.user_id == user_id)
+    if project_id is not None:
+        conditions.append(AuditLog.project_id == project_id)
+    if action:
+        conditions.append(AuditLog.action == action)
+    if date_from:
+        conditions.append(AuditLog.created_at >= date_from)
+    if date_to:
+        conditions.append(AuditLog.created_at < f"{date_to}T99")       # the whole of the last day
+    return conditions
+
+
+def count_audit_logs(db: Session, user_id: int | None = None, project_id: int | None = None, action: str = "",
+                     date_from: str = "", date_to: str = "") -> int:
+    stmt = select(func.count()).select_from(AuditLog).where(*_audit_where(user_id, project_id, action, date_from, date_to))
+    return db.scalar(stmt) or 0
+
+
+def list_audit_logs(db: Session, user_id: int | None = None, project_id: int | None = None, action: str = "",
+                    date_from: str = "", date_to: str = "", limit: int = 50, offset: int = 0) -> list[AuditLog]:
+    stmt = (select(AuditLog).where(*_audit_where(user_id, project_id, action, date_from, date_to))
+            .order_by(AuditLog.id.desc()).limit(limit).offset(offset))
+    return list(db.scalars(stmt))
+
+
+# The log of these tables is not offered for undo: users would put back a password hash.
+REVERT_EXCLUDED_TABLES = {"users", "audit_logs"}
+
+
+def _model_for_table(table: str) -> type[Base] | None:
+    for mapper in Base.registry.mappers:
+        if mapper.local_table.name == table:
+            return mapper.class_
+    return None
+
+
+def revert_update(db: Session, log: AuditLog) -> str | None:
+    """Put back the old values of one logged update. Returns an error message, or None when it worked.
+
+    Refused when the record has changed since that update, so a later edit is never overwritten.
+    The undo is itself logged as an update, so it can be traced too.
+    """
+    if log.action != "update" or not log.old_value or log.entity_id is None:
+        return "Chỉ hoàn tác được thao tác sửa."
+    if log.entity_type in REVERT_EXCLUDED_TABLES:
+        return "Không hoàn tác được mục này."
+    model = _model_for_table(log.entity_type or "")
+    obj = db.get(model, log.entity_id) if model is not None else None
+    if obj is None:
+        return "Bản ghi này không còn tồn tại."
+    current = json.loads(json.dumps(to_dict(obj), ensure_ascii=False, default=str))
+    if any(current.get(key) != value for key, value in json.loads(log.new_value or "{}").items()):
+        return "Bản ghi đã được sửa sau thao tác này nên không hoàn tác tự động được."
+    update(db, obj, json.loads(log.old_value))
+    return None

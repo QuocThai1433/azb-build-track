@@ -1,0 +1,71 @@
+{% extends 'base_public.html' %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', path='css/home.css') }}?v={{ static_version }}">
+<script defer src="{{ url_for('static', path='js/home.js') }}?v={{ static_version }}"></script>{% endblock %}
+{% macro card(p) %}
+<a class="pcard{% if p.late %} is-late{% endif %}" href="{{ p.url }}">
+  <div class="pcard-top"><span class="badge st-{{ p.status }}">{{ p.status_label }}</span>{% if p.late %}<span class="badge st-late">Trễ hạn</span>{% elif p.overdue_tasks %}<span class="badge st-warn">{{ p.overdue_tasks }} việc quá hạn</span>{% endif %}</div>
+  <h3>{{ p.name }}</h3>
+  <p class="pcard-sub">{{ p.client or p.package_name or 'Dự án thi công' }}</p>
+  <div class="pbar" role="img" aria-label="Tiến độ thực tế"><span style="width:{{ [p.progress or 0, 100]|min|round(0) }}%"></span></div>
+  <div class="pcard-meta"><b>{% if p.progress is none %}Chưa cập nhật{% else %}{{ p.progress|round(0)|int }}%{% endif %}</b>
+    <span>{{ p.start_date or '—' }} → {{ p.end_date or '—' }}</span></div>
+</a>
+{% endmacro %}
+{% block content %}
+<header class="home-top">
+  <a class="home-brand" href="{{ url_for('home') }}"><span class="brand-mark">AZB</span><span><strong>AZB Project Hub</strong><small>Quản lý kế hoạch thi công</small></span></a>
+  <div class="home-user">
+    <span class="home-hello">Xin chào, <b>{{ current_user.full_name or current_user.username }}</b> · {{ role_label }}</span>
+{% if can('users.manage') %}<a class="notif-btn" href="{{ url_for('users_list') }}" title="{{ pending_users }} tài khoản đăng ký chờ duyệt" aria-label="Tài khoản chờ duyệt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-4.7 0-8.5 3.4-8.5 7.7 0 2.4 1.2 4.5 3.1 5.9V20l3-1.7c.8.2 1.5.3 2.4.3 4.7 0 8.5-3.4 8.5-7.7S16.7 3.5 12 3.500Z"/><path d="m7.5 12.8 3-3.2 2 2 3-2.800"/></svg>{% if pending_users %}<span class="notif-count">{{ pending_users if pending_users < 100 else '99+' }}</span>{% endif %}</a>{% endif %}
+    {% if can('audit.view') %}<a class="btn btn-ghost btn-sm" href="{{ url_for('audit_logs') }}">Nhật ký</a>{% endif %}
+    {% if can('users.manage') %}<a class="btn btn-ghost btn-sm" href="{{ url_for('users_list') }}">Tài khoản</a>{% endif %}
+    {% if can('project.create') %}<a class="btn btn-ghost btn-sm" href="{{ url_for('projects_list') }}">Quản lý dự án</a>{% endif %}
+    <form method="post" action="{{ url_for('logout') }}"><button class="btn btn-outline btn-sm" type="submit">Đăng xuất</button></form>
+  </div>
+</header>
+
+<main class="home-main">
+  <section class="home-hero">
+    <h1>Bạn muốn xem dự án nào?</h1>
+    <form class="home-search" method="get" action="{{ url_for('home') }}" id="homeForm" role="search" autocomplete="off">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+      <input id="homeQ" name="q" type="search" value="{{ q }}" placeholder="Tìm theo tên dự án, mã, chủ đầu tư, nhà thầu…" aria-label="Tìm dự án" autofocus>
+      <button class="btn btn-primary" type="submit">Tìm kiếm</button>
+      <ul class="suggest" id="homeSuggest" hidden role="listbox"></ul>
+    </form>
+    <div class="home-filters">
+      <select name="status" form="homeForm" aria-label="Trạng thái"><option value="">Mọi trạng thái</option>{% for k, label in status_labels.items() %}<option value="{{ k }}" {% if status == k %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+      <select name="year" form="homeForm" aria-label="Năm"><option value="">Mọi năm</option>{% for y in years %}<option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>{% endfor %}</select>
+      <select name="sort" form="homeForm" aria-label="Sắp xếp">{% for k, label in sorts.items() %}<option value="{{ k }}" {% if sort == k %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+  </section>
+
+  {% if kpi %}
+  <section class="kpi-row" aria-label="Tổng quan">
+    <div class="kpi"><span>Số dự án</span><b>{{ kpi.projects }}</b></div>
+    <div class="kpi {% if kpi.late %}kpi-bad{% endif %}"><span>Dự án trễ hạn</span><b>{{ kpi.late }}</b></div>
+    <div class="kpi"><span>Ngân sách / đã chi</span><b>{{ kpi.budget|compact_money }}</b><small>đã chi {{ kpi.actual|compact_money }}</small></div>
+    <div class="kpi {% if kpi.high_risks %}kpi-bad{% endif %}"><span>Rủi ro mức Cao</span><b>{{ kpi.high_risks }}</b></div>
+  </section>
+  {% endif %}
+
+  {% if recent and not q %}
+  <section class="home-section"><h2>Dự án gần đây</h2><div class="pgrid">{% for p in recent %}{{ card(p) }}{% endfor %}</div></section>
+  {% endif %}
+  {% if assigned and not q %}
+  <section class="home-section"><h2>Dự án được giao cho tôi</h2><div class="pgrid">{% for p in assigned %}{{ card(p) }}{% endfor %}</div></section>
+  {% endif %}
+
+  <section class="home-section">
+    <h2>{% if is_staff %}Dự án của tôi{% else %}Tất cả dự án{% endif %} <small id="homeCount">({{ cards|length }})</small></h2>
+    <div class="pgrid" id="homeGrid" aria-live="polite">
+      {% for p in cards %}{{ card(p) }}{% endfor %}
+    </div>
+    <div class="pgrid skeleton" id="homeSkeleton" hidden>{% for i in range(3) %}<div class="pcard sk"><i></i><i></i><i></i></div>{% endfor %}</div>
+    <div class="empty" id="homeEmpty" {% if cards %}hidden{% endif %}>
+      <b>{% if total_all == 0 %}{% if is_staff %}Bạn chưa được giao dự án nào.{% else %}Chưa có dự án nào.{% endif %}{% else %}Không tìm thấy dự án phù hợp.{% endif %}</b>
+      <p>{% if total_all == 0 and is_staff %}Hãy nhờ giám đốc hoặc quản trị viên giao dự án cho bạn.{% elif total_all == 0 and can('project.create') %}<a href="{{ url_for('project_new') }}">Tạo dự án đầu tiên</a>{% else %}Thử từ khóa khác hoặc <a href="{{ url_for('home') }}">xóa bộ lọc</a>.{% endif %}</p>
+    </div>
+  </section>
+</main>
+{% endblock %}

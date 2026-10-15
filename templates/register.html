@@ -1,0 +1,21 @@
+{% extends 'base_public.html' %}{% block content %}
+<main class="login-wrap">
+  <section class="login-card">
+    <div class="login-brand"><span class="brand-mark">AZB</span><div><strong>AZB Project Hub</strong><small>Quản Lý Kế Hoạch Thi Công</small></div></div>
+    <h1>Đăng ký tài khoản</h1>
+    <p class="login-sub">Dành cho nhân viên. Sau khi đăng ký, quản trị viên sẽ kích hoạt tài khoản và giao dự án.</p>
+    <form method="post" action="{{ url_for('register') }}" class="login-form">
+      <label for="full_name">Họ và tên</label>
+      <input id="full_name" name="full_name" value="{{ full_name }}" autocomplete="name" autofocus required>
+      <label for="username">Tên đăng nhập</label>
+      <input id="username" name="username" value="{{ username }}" autocomplete="username" pattern="[A-Za-z0-9._-]{3,32}" required>
+      <label for="password">Mật khẩu (ít nhất 8 ký tự)</label>
+      <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="confirm">Nhập lại mật khẩu</label>
+      <input id="confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required>
+      <button class="btn btn-primary login-submit" type="submit">Gửi đăng ký</button>
+    </form>
+    <p class="login-sub" style="margin-top:16px;margin-bottom:0">Đã có tài khoản? <a href="{{ url_for('login') }}">Đăng nhập</a></p>
+  </section>
+</main>
+{% endblock %}

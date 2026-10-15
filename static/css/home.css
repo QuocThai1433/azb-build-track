@@ -1,0 +1,62 @@
+/* Home page: project picker shown after sign in. Uses the dark public background from public.css. */
+.public-body{background:#f2f5fa;color:#172b4d}
+[hidden]{display:none!important}
+.home-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px clamp(16px,4vw,40px);background:linear-gradient(120deg,#0d1730,#16294d);color:#fff}
+.home-brand{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
+.home-brand .brand-mark{width:40px;height:40px;border-radius:10px;background:#fff;color:#101c31;font-weight:700;display:grid;place-items:center;font-size:14px}
+.home-brand strong{display:block;font-size:15px}.home-brand small{opacity:.7}
+.home-user{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.home-hello{font-size:14px;opacity:.9;margin-right:6px}
+.home-user .btn-ghost,.home-user .btn-outline{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
+.home-user .btn-ghost:hover,.home-user .btn-outline:hover{background:rgba(255,255,255,.12)}
+.home-main{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px) 48px}
+.home-hero{text-align:center;padding:40px 0 20px}
+.home-hero h1{font-size:clamp(24px,4vw,34px);margin:0 0 20px}
+.home-search{position:relative;display:flex;align-items:center;gap:8px;max-width:720px;margin:0 auto;background:#fff;border:1px solid #d5deea;border-radius:14px;padding:8px 8px 8px 14px;box-shadow:0 8px 28px rgba(23,43,77,.10)}
+.home-search svg{width:22px;height:22px;fill:none;stroke:#6b7a90;stroke-width:2;flex:none}
+.home-search input{flex:1;min-width:0;border:0;outline:0;font-size:16px;padding:10px 4px;background:transparent}
+.home-search:focus-within{border-color:#2b6cb0;box-shadow:0 8px 28px rgba(43,108,176,.18)}
+.suggest{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:10;list-style:none;margin:0;padding:6px;background:#fff;border:1px solid #d5deea;border-radius:12px;box-shadow:0 14px 34px rgba(23,43,77,.16);text-align:left}
+.suggest a{display:flex;flex-direction:column;gap:2px;padding:9px 12px;border-radius:8px;color:inherit;text-decoration:none}
+.suggest a:hover,.suggest a:focus{background:#eef3fa}
+.suggest small{color:#6b7a90}
+.home-filters{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.home-filters select{padding:9px 12px;border:1px solid #d5deea;border-radius:10px;background:#fff;font-size:14px}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:18px 0 8px}
+.kpi{background:#fff;border:1px solid #e1e8f1;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:2px}
+.kpi span{font-size:13px;color:#6b7a90}.kpi b{font-size:26px}.kpi small{color:#6b7a90}
+.kpi-bad b{color:#c0392b}
+.home-section{margin-top:28px}
+.home-section h2{font-size:18px;margin:0 0 12px}.home-section h2 small{color:#6b7a90;font-weight:400}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.pcard{display:block;background:#fff;border:1px solid #e1e8f1;border-radius:14px;padding:18px;color:inherit;text-decoration:none;transition:transform .12s,box-shadow .12s,border-color .12s}
+.pcard:hover,.pcard:focus-visible{transform:translateY(-2px);box-shadow:0 12px 28px rgba(23,43,77,.12);border-color:#9db8dc;outline:0}
+.pcard.is-late{border-left:4px solid #c0392b}
+.pcard-top{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pcard h3{font-size:16px;margin:0 0 4px;line-height:1.35}
+.pcard-sub{margin:0 0 14px;color:#6b7a90;font-size:13px}
+.pbar{height:8px;border-radius:99px;background:#e8eef6;overflow:hidden}
+.pbar span{display:block;height:100%;background:linear-gradient(90deg,#2b6cb0,#38a89d);border-radius:99px}
+.pcard-meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:13px;color:#6b7a90}
+.pcard-meta b{color:#172b4d}
+.badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:600;background:#e8eef6;color:#35507a}
+.st-dang_thi_cong{background:#e3f4f1;color:#1d7a6e}
+.st-tam_dung{background:#fdf1d8;color:#9a6a05}
+.st-hoan_thanh{background:#e2ecfb;color:#2b5aa8}
+.st-late{background:#fde4e1;color:#b03022}
+.st-warn{background:#fdf1d8;color:#9a6a05}
+.empty{text-align:center;padding:48px 16px;background:#fff;border:1px dashed #cfd8e3;border-radius:14px}
+.empty b{font-size:17px}.empty p{color:#6b7a90;margin:8px 0 0}
+.skeleton .sk{display:flex;flex-direction:column;gap:12px}
+.skeleton .sk i{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,#e8eef6 25%,#f4f7fb 50%,#e8eef6 75%);background-size:200% 100%;animation:sk 1.2s infinite}
+.skeleton .sk i:first-child{width:40%}.skeleton .sk i:nth-child(2){width:80%;height:18px}.skeleton .sk i:nth-child(3){width:100%;height:8px}
+@keyframes sk{to{background-position:-200% 0}}
+@media (max-width:560px){.kpi-row{grid-template-columns:repeat(2,1fr)}.kpi b{font-size:22px}.home-hero{padding-top:24px}.home-search{flex-wrap:wrap}.home-search .btn{width:100%}.home-hello{display:none}}
+@media (prefers-reduced-motion:reduce){.pcard,.skeleton .sk i{transition:none;animation:none}}
+
+/* notification bell: pending self-registered accounts (admin) */
+.notif-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:#e4e6eb;color:#050505;flex:none}
+.notif-btn:hover{background:#d8dadf}
+.notif-btn svg{width:20px;height:20px;fill:currentColor;stroke:none}
+.notif-btn svg path:last-child{fill:none;stroke:#e4e6eb;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.notif-count{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e41e3f;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;box-sizing:border-box}

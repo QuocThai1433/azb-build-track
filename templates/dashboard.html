@@ -25,5 +25,5 @@
     {% if upcoming %}<div class="upcoming-list">{% for t in upcoming %}<div class="upcoming-item"><div class="upcoming-date"><strong>{{ t.end_date[8:10] }}</strong><span>{{ t.end_date[5:7] }}/{{ t.end_date[0:4] }}</span></div><div class="upcoming-text"><strong>{{ t.title }}</strong><small>{{ t.category }} · {{ t.task_type }}</small></div><span class="tiny-status {% if t.actual_status=='Hoàn thành' %}tiny-done{% else %}tiny-plan{% endif %}">{{ t.actual_status }}</span></div>{% endfor %}</div>{% else %}<div class="empty-state">Chưa có công việc có ngày kết thúc sắp tới.</div>{% endif %}
   </section>
 </div>
-<div class="disclaimer"><span>ⓘ</span><div><strong>Phân biệt kế hoạch và thực tế</strong><p>Tiến độ kế hoạch/rủi ro/chi phí dự toán được nạp từ Excel. Tiến độ thực tế và thực chi chưa có dữ liệu ban đầu; hãy cập nhật trong ứng dụng để số liệu điều hành phản ánh đúng công trường.</p></div><a href="{{ url_for('import_page') }}">Quản lý dữ liệu →</a></div>
+<div class="disclaimer"><span>ⓘ</span><div><strong>Phân biệt kế hoạch và thực tế</strong><p>Tiến độ kế hoạch/rủi ro/chi phí dự toán được nạp từ Excel. Tiến độ thực tế và thực chi chưa có dữ liệu ban đầu; hãy cập nhật trong ứng dụng để số liệu điều hành phản ánh đúng công trường.</p></div>{% if can('import.run') %}<a href="{{ url_for('import_page') }}">Quản lý dữ liệu →</a>{% endif %}</div>
 {% endblock %}

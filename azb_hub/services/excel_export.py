@@ -95,3 +95,33 @@ def build_report(db: Session, project_id: int) -> bytes:
     buffer = BytesIO()
     wb.save(buffer)
     return buffer.getvalue()
+
+
+AUDIT_COLUMNS = [("Thời gian", "created_at"), ("Người dùng", "username"), ("Hành động", "action"),
+                 ("Đối tượng", "entity_type"), ("Mã bản ghi", "entity_id"), ("Mã dự án", "project_id"),
+                 ("Giá trị cũ", "old_value"), ("Giá trị mới", "new_value"), ("IP", "ip_address"),
+                 ("Trình duyệt", "user_agent")]
+
+
+def build_audit_log(rows) -> bytes:
+    """One sheet with the audit rows given (already filtered and limited by the caller)."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "NhatKyHoatDong"
+    ws.append([label for label, _ in AUDIT_COLUMNS])
+    for row in rows:
+        ws.append([getattr(row, key) for _, key in AUDIT_COLUMNS])
+    for c in ws[1]:
+        c.fill = PatternFill("solid", fgColor=NAVY)
+        c.font = Font(color=WHITE, bold=True)
+        c.alignment = Alignment(vertical="center", wrap_text=True)
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+    for letter, width in zip("ABCDEFGHIJ", (20, 18, 14, 16, 12, 10, 50, 50, 16, 30)):
+        ws.column_dimensions[letter].width = width
+    buffer = BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()

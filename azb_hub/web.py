@@ -13,13 +13,17 @@ from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
+from sqlalchemy import func, select
 from starlette.routing import NoMatchFound
 
+from . import auth
 from . import repositories as repo
 from .constants import APP_VERSION
 from .db import BASE_DIR, SessionLocal
+from .models import User
 
-SECRET_KEY = os.environ.get("PROJECT_MANAGER_SECRET", "azb-local-project-manager-change-me")
+DEFAULT_SECRET = "azb-local-project-manager-change-me"
+SECRET_KEY = os.environ.get("PROJECT_MANAGER_SECRET", DEFAULT_SECRET)
 
 
 def fmt_money(value) -> str:
@@ -86,15 +90,22 @@ def _url_for(context, name: str, **params: Any) -> str:
 
 
 def _inject_globals(request: Request) -> dict[str, Any]:
+    user = getattr(request.state, "user", None)
     pid = current_project_id(request)
     with SessionLocal() as db:
-        projects = repo.list_projects(db)
+        projects = repo.list_projects(db, user=user)             # staff only see the projects assigned to them
         if pid is None or repo.get_project(db, pid) is None:
-            fallback = projects or repo.list_projects(db, include_archived=True)
+            fallback = projects or repo.list_projects(db, include_archived=True, user=user)
             pid = fallback[0].id if fallback else None
         project = repo.get_project(db, pid) if pid is not None else None
+        pending = 0
+        if user is not None and auth.can(user, "users.manage"):    # self-registered accounts waiting for approval
+            pending = db.scalar(select(func.count()).select_from(User).where(
+                User.is_active.is_(False), User.last_login_at.is_(None))) or 0
     route = request.scope.get("route")
     return {"project": project, "current_project_id": pid, "projects": projects,
+            "current_user": user, "pending_users": pending, "can": lambda action: auth.can(user, action),
+            "role_label": auth.ROLE_LABELS.get(user.role, "") if user else "",
             "active_endpoint": getattr(route, "name", "") or "",
             "today": date.today().isoformat(), "app_version": APP_VERSION, "static_version": STATIC_VERSION}
 

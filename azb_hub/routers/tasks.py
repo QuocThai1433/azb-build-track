@@ -8,6 +8,7 @@ from .. import repositories as repo
 from ..constants import PRIORITIES, STATUSES
 from ..db import get_db
 from ..models import Task
+from .deps import require
 from ..schemas import TaskForm
 from ..web import flash, or_404, redirect, render
 
@@ -85,7 +86,7 @@ def task_update(request: Request, project_id: int, task_id: int, form: Annotated
     return redirect(request, "tasks_list")
 
 
-@router.post("/tasks/{task_id}/delete", name="task_delete")
+@router.post("/tasks/{task_id}/delete", name="task_delete", dependencies=[Depends(require("record.delete"))])
 def task_delete(request: Request, project_id: int, task_id: int, db: Session = Depends(get_db)):
     repo.remove(db, Task, project_id, task_id)
     flash(request, "Đã xóa công việc.", "success")

@@ -8,7 +8,6 @@
       "program": "${workspaceFolder}/app.py",
       "console": "integratedTerminal",
       "justMyCode": true,
-      "env": { "PORT": "5000" }
-    }
+      "env": { "PORT": "5000", "ANTHROPIC_API_KEY": "" }    }
   ]
 }

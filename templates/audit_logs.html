@@ -1,0 +1,26 @@
+{% extends 'base.html' %}{% block content %}
+<div class="page-heading heading-row"><div><div class="eyebrow">QUẢN TRỊ HỆ THỐNG</div><h1>Nhật ký hoạt động</h1><p class="page-subtitle">Ai đã làm gì, lúc nào. Nhật ký chỉ được thêm vào, không sửa hay xóa được.</p></div>
+<div class="heading-actions"><a class="btn btn-outline" href="{{ url_for('audit_logs_export') }}?{{ query|urlencode }}">Xuất Excel ↗</a></div></div>
+<div class="panel table-panel">
+<form class="filter-bar" method="get">
+  <select name="user_id" aria-label="Người dùng"><option value="">Tất cả người dùng</option>{% for u in users %}<option value="{{ u.id }}" {% if f.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>{% endfor %}</select>
+  <select name="project_id" aria-label="Dự án"><option value="">Tất cả dự án</option>{% for p in projects %}<option value="{{ p.id }}" {% if f.project_id == p.id %}selected{% endif %}>{{ p.name }}</option>{% endfor %}</select>
+  <select name="action" aria-label="Hành động"><option value="">Mọi hành động</option>{% for a in actions %}<option value="{{ a }}" {% if f.action == a %}selected{% endif %}>{{ action_labels.get(a, a) }}</option>{% endfor %}</select>
+  <input type="date" name="date_from" value="{{ f.date_from }}" aria-label="Từ ngày"><input type="date" name="date_to" value="{{ f.date_to }}" aria-label="Đến ngày">
+  <button class="btn btn-dark">Lọc</button><a class="btn btn-ghost" href="{{ url_for('audit_logs') }}">Xóa lọc</a>
+</form>
+<div class="table-wrap"><table class="data-table"><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Hành động</th><th>Đối tượng</th><th>Dự án</th><th>Chi tiết</th><th>IP</th></tr></thead><tbody>
+{% for r in rows %}<tr>
+<td>{{ r.created_at|replace('T', ' ') }}</td><td>{{ r.username or '—' }}</td>
+<td><span class="tag {% if r.action in ('delete','login_failed','denied','reject') %}tag-red{% elif r.action in ('create','approve') %}tag-teal{% endif %}">{{ action_labels.get(r.action, r.action) }}</span></td>
+<td>{{ r.entity_type or '—' }}{% if r.entity_id %} #{{ r.entity_id }}{% endif %}</td>
+<td>{{ project_names.get(r.project_id, '—' if r.project_id is none else '#' ~ r.project_id ~ ' (đã xóa)') }}</td>
+<td class="wrap-cell">{% if r.old_value or r.new_value %}<details><summary>Xem</summary>{% if r.old_value %}<div><small>Trước:</small> <code>{{ r.old_value }}</code></div>{% endif %}{% if r.new_value %}<div><small>Sau:</small> <code>{{ r.new_value }}</code></div>{% endif %}</details>{% else %}—{% endif %}{% if r.action == 'update' and r.entity_type not in ('users', 'audit_logs') and can('audit.revert') %}<form method="post" action="{{ url_for('audit_revert', log_id=r.id) }}" class="revert-form" onsubmit="return confirm('Hoàn tác thay đổi này về giá trị trước?')"><button class="btn btn-ghost btn-sm" type="submit">Hoàn tác</button></form>{% endif %}</td>
+<td>{{ r.ip_address or '—' }}</td></tr>
+{% else %}<tr><td colspan="7"><div class="empty-state">Không có bản ghi nào khớp bộ lọc.</div></td></tr>{% endfor %}
+</tbody></table></div>
+<div class="table-footer"><span>{{ total }} bản ghi · trang {{ page }}/{{ pages }}</span>
+<span>{% if page > 1 %}<a class="btn btn-outline btn-sm" href="?{{ query|urlencode }}{% if query %}&{% endif %}page={{ page - 1 }}">← Trước</a>{% endif %}
+{% if page < pages %}<a class="btn btn-outline btn-sm" href="?{{ query|urlencode }}{% if query %}&{% endif %}page={{ page + 1 }}">Sau →</a>{% endif %}</span></div>
+</div>
+{% endblock %}

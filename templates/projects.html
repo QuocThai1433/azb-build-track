@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% block content %}
-<div class="page-heading heading-row"><div><div class="eyebrow">KHÔNG GIAN LÀM VIỆC</div><h1>Danh sách dự án</h1><p class="page-subtitle">Mỗi lần tải một file Excel mới, hệ thống tạo thêm một dự án tại đây. Dữ liệu của từng dự án tách riêng.</p></div><div class="heading-actions"><a class="btn btn-primary" href="{{ url_for('project_new') }}">＋ &nbsp; Thêm dự án mới</a></div></div>
+<div class="page-heading heading-row"><div><div class="eyebrow">KHÔNG GIAN LÀM VIỆC</div><h1>Danh sách dự án</h1><p class="page-subtitle">Mỗi lần tải một file Excel mới, hệ thống tạo thêm một dự án tại đây. Dữ liệu của từng dự án tách riêng.</p></div><div class="heading-actions">{% if can('project.create') %}<a class="btn btn-primary" href="{{ url_for('project_new') }}">＋ &nbsp; Thêm dự án mới</a>{% endif %}</div></div>
 <section class="panel projects-panel">
   <div class="table-wrap">
     <table class="data-table projects-table">
@@ -15,11 +15,11 @@
           <td class="projects-actions">
             <a class="btn btn-outline btn-sm" href="{{ url_for('dashboard', project_id=p.id) }}">Mở</a>
             {% if p.status == 'active' %}
-            <form method="post" action="{{ url_for('project_archive', project_id=p.id) }}"><button class="btn btn-outline btn-sm" type="submit" data-confirm="Lưu trữ dự án “{{ p.name }}”? Dự án sẽ ẩn khỏi danh sách chọn nhưng dữ liệu vẫn giữ nguyên.">Lưu trữ</button></form>
+            {% if can('project.archive') %}<form method="post" action="{{ url_for('project_archive', project_id=p.id) }}"><button class="btn btn-outline btn-sm" type="submit" data-confirm="Lưu trữ dự án “{{ p.name }}”? Dự án sẽ ẩn khỏi danh sách chọn nhưng dữ liệu vẫn giữ nguyên.">Lưu trữ</button></form>{% endif %}
             {% else %}
-            <form method="post" action="{{ url_for('project_restore', project_id=p.id) }}"><button class="btn btn-outline btn-sm" type="submit">Khôi phục</button></form>
+            {% if can('project.archive') %}<form method="post" action="{{ url_for('project_restore', project_id=p.id) }}"><button class="btn btn-outline btn-sm" type="submit">Khôi phục</button></form>{% endif %}
             {% endif %}
-            {% if all_projects|length > 1 %}
+            {% if can('project.delete') %}{% if all_projects|length > 1 %}
             <button class="btn btn-danger btn-sm btn-delete" type="button" data-delete-project
                     data-action="{{ url_for('project_delete', project_id=p.id) }}"
                     data-name="{{ p.name }}" data-summary="{{ summaries.get(p.id) or 'không có dữ liệu' }}"
@@ -30,7 +30,7 @@
             <button class="btn btn-sm btn-delete btn-delete-off" type="button" disabled title="Không thể xoá dự án cuối cùng. Hãy tạo dự án khác trước.">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
               <span>Xoá dự án</span></button>
-            {% endif %}
+            {% endif %}{% endif %}
           </td>
         </tr>
       {% else %}

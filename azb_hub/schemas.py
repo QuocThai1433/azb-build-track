@@ -46,6 +46,7 @@ class ProjectForm(BaseModel):
     contract_value: Num = 0.0
     prelim_budget: Num = 0.0
     notes: str = ""
+    construction_status: str = "dang_thi_cong"
 
 
 class TaskForm(BaseModel):
