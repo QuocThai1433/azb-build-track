@@ -67,6 +67,7 @@ class TaskForm(BaseModel):
     actual_start_date: OptDate = None
     actual_end_date: OptDate = None
     priority: str = "Trung bình"
+    weight: Num = 1.0
 
 
 class ResourceForm(BaseModel):

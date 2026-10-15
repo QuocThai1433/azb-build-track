@@ -58,7 +58,7 @@ Sau khi terminal cho biết Flask đang chạy, truy cập **http://127.0.0.1:50
 
 | Vai trò | Quyền |
 | --- | --- |
-| `admin` | Toàn quyền: quản lý tài khoản, giao dự án, xem nhật ký, xem mọi dự án. |
+| `admin` | Toàn quyền: quản lý tài khoản (tạo, sửa, khóa, xóa), giao dự án, xem nhật ký, xem mọi dự án. |
 | `giam_doc` | Xem mọi dự án, tạo/lưu trữ/xóa dự án, duyệt chi phí, nhập/xuất Excel, xem nhật ký. |
 | `nhan_vien` | Chỉ xem và nhập liệu ở dự án được giao. Không xóa, không duyệt chi phí, không nhập/xuất Excel, không xem nhật ký. |
 
@@ -71,6 +71,28 @@ Biến môi trường:
 Mọi thao tác thêm/sửa/xóa, đăng nhập (kể cả sai), nhập/xuất Excel, duyệt chi phí và bị từ chối quyền đều được ghi vào bảng
 `audit_logs` (chỉ thêm, CSDL từ chối sửa/xóa). Xem tại menu **Nhật ký hoạt động** (`/audit-logs`), có lọc và xuất Excel.
 Sau 5 lần nhập sai mật khẩu, tài khoản tạm khóa 15 phút.
+
+## Kiểm soát tiến độ (menu "Kiểm soát tiến độ")
+
+- **Phụ thuộc giữa công việc:** FS / SS / FF / SF kèm độ trễ (ngày làm việc). Hệ thống từ chối phụ thuộc tạo vòng lặp.
+- **Đường găng (CPM):** tính theo lịch làm việc của dự án (chọn ngày làm việc trong tuần và khai báo ngày nghỉ/Tết).
+  Gantt tô đỏ công việc trên đường găng và vẽ mũi tên phụ thuộc.
+- **Baseline:** "Chốt baseline" lưu bản sao kế hoạch gốc; Gantt hiện vạch baseline và độ lệch ngày kết thúc.
+- **Trọng số, đường cong S, EVM:** mỗi công việc có trọng số (mặc định 1). Trang hiển thị PV, EV, AC, SPI, CPI, EAC và
+  ngày hoàn thành dự báo. BAC lấy từ tổng ngân sách chi phí của dự án.
+- **Cảnh báo:** việc quá hạn/đến hạn chưa cập nhật, bị đẩy lùi, rủi ro quá hạn, chi phí chờ duyệt, SPI/CPI thấp.
+- **Sao lưu tự động:** mỗi 24 giờ một bản trong `instance/backups` (giữ 14 bản gần nhất, tên có `tu_dong`).
+  Đặt `AZB_AUTO_BACKUP=0` để tắt.
+
+Khi nhập lại Excel, phụ thuộc, baseline và trọng số được giữ lại cho các công việc có mã WBS trùng; công việc không có mã WBS sẽ mất các liên kết này.
+
+## Đính kèm ảnh và tài liệu hiện trường
+
+Nhật ký công trường, nhật ký HSSE và rủi ro đều có mục **📎 Đính kèm** trên từng bản ghi: tải nhiều tệp một lần
+(ảnh JPG/PNG/GIF/WEBP, PDF, Word, Excel, TXT, CSV; tối đa 15 MB mỗi tệp, 30 tệp mỗi bản ghi). Trên điện thoại,
+nút chọn tệp cho phép chụp ảnh trực tiếp. Tệp được kiểm tra đuôi và nội dung, lưu ở `instance/attachments/<mã dự án>/`.
+Xóa bản ghi hoặc dự án sẽ xóa cả tệp đính kèm. Khi sao lưu hãy copy cả thư mục `instance/attachments`
+(bản sao lưu tự động chỉ chứa cơ sở dữ liệu).
 
 ## 4. Dữ liệu được lưu ở đâu?
 

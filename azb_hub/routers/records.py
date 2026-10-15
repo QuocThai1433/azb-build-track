@@ -12,6 +12,7 @@ from .. import auth
 from ..db import get_db
 from ..models import Cost, Method, Resource, Risk
 from ..schemas import CostForm, MethodForm, ResourceForm, RiskForm
+from ..services import attachments
 from ..web import flash, or_404, redirect, render
 from .deps import require
 
@@ -70,6 +71,8 @@ def register(c: Crud) -> None:
         return redirect(request, c.list_route)
 
     def delete(request: Request, project_id: int, record_id: int, db: Session = Depends(get_db)):
+        if c.model is Risk:
+            attachments.remove_for_entity(db, project_id, "risks", record_id)
         repo.remove(db, c.model, project_id, record_id)
         flash(request, c.deleted, "success")
         return redirect(request, c.list_route)
@@ -137,6 +140,7 @@ def risks_list(request: Request, project_id: int, db: Session = Depends(get_db),
     q, severity, status = q.strip(), severity.strip(), status.strip()
     return render(request, "risks.html", title="Rủi ro & kiến nghị",
                   items=repo.list_risks(db, project_id, q, severity, status), counts=repo.risk_counts(db, project_id),
+                  files=attachments.for_entities(db, project_id, "risks"),
                   q=q, severity=severity, status=status, severities=PRIORITIES, risk_statuses=RISK_STATUSES)
 
 

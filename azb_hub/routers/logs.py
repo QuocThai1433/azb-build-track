@@ -9,6 +9,7 @@ from .. import repositories as repo
 from ..db import get_db
 from ..models import Diary, SafetyLog
 from ..schemas import DiaryForm, HsseForm
+from ..services import attachments
 from ..web import flash, redirect, render
 from .deps import require
 
@@ -22,7 +23,8 @@ def _now() -> str:
 def _hsse_page(request: Request, db: Session, project_id: int):
     total_logs, high_logs = repo.safety_log_counts(db, project_id)
     return render(request, "hsse.html", title="An toàn HSSE", metrics=repo.hsse_metrics(db, project_id),
-                  logs=repo.safety_logs(db, project_id, limit=100), total_logs=total_logs, high_logs=high_logs)
+                  logs=repo.safety_logs(db, project_id, limit=100), total_logs=total_logs, high_logs=high_logs,
+                  files=attachments.for_entities(db, project_id, "safety_logs"))
 
 
 @router.get("/hsse", name="hsse")
@@ -45,6 +47,7 @@ def hsse_add(request: Request, project_id: int, form: Annotated[HsseForm, Form()
 
 @router.post("/hsse/{log_id}/delete", name="hsse_delete", dependencies=[Depends(require("record.delete"))])
 def hsse_delete(request: Request, project_id: int, log_id: int, db: Session = Depends(get_db)):
+    attachments.remove_for_entity(db, project_id, "safety_logs", log_id)
     repo.remove(db, SafetyLog, project_id, log_id)
     flash(request, "Đã xóa nhật ký HSSE.", "success")
     return redirect(request, "hsse")
@@ -52,7 +55,8 @@ def hsse_delete(request: Request, project_id: int, log_id: int, db: Session = De
 
 def _diary_page(request: Request, db: Session, project_id: int):
     return render(request, "diary.html", title="Nhật ký công trường", items=repo.diary_entries(db, project_id),
-                  total=repo.count_rows(db, Diary, project_id))
+                  total=repo.count_rows(db, Diary, project_id),
+                  files=attachments.for_entities(db, project_id, "diary"))
 
 
 @router.get("/diary", name="diary")
@@ -76,6 +80,7 @@ def diary_add(request: Request, project_id: int, form: Annotated[DiaryForm, Form
 
 @router.post("/diary/{log_id}/delete", name="diary_delete", dependencies=[Depends(require("record.delete"))])
 def diary_delete(request: Request, project_id: int, log_id: int, db: Session = Depends(get_db)):
+    attachments.remove_for_entity(db, project_id, "diary", log_id)
     repo.remove(db, Diary, project_id, log_id)
     flash(request, "Đã xóa nhật ký.", "success")
     return redirect(request, "diary")

@@ -10,6 +10,7 @@ from ..db import get_db
 from ..models import Task
 from .deps import require
 from ..schemas import TaskForm
+from ..services import control
 from ..web import flash, or_404, redirect, render
 
 router = APIRouter()
@@ -30,6 +31,7 @@ def _values(form: TaskForm) -> dict:
         "actual_start_date": form.actual_start_date, "actual_end_date": form.actual_end_date,
         "updated_at": datetime.now().isoformat(timespec="seconds") if touched else None,
         "priority": form.priority if form.priority in PRIORITIES else "Trung bình",
+        "weight": max(0.0, form.weight),
     }
 
 
@@ -82,6 +84,7 @@ def task_update(request: Request, project_id: int, task_id: int, form: Annotated
         flash(request, "Vui lòng nhập tên công việc.", "error")
         return _form_page(request, "Cập nhật công việc", item)
     repo.update(db, item, values)
+    control.record_snapshot(db, project_id)
     flash(request, "Đã cập nhật công việc và tiến độ thực tế.", "success")
     return redirect(request, "tasks_list")
 

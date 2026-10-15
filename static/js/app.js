@@ -19,10 +19,67 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', () => button.closest('.flash')?.remove());
   });
 
+  // Hộp xác nhận dùng chung (thay cho window.confirm của trình duyệt).
+  const approved = new WeakSet();
+  const askConfirm = (opts) => new Promise((resolve) => {
+    const danger = opts.danger;
+    const overlay = document.createElement('div');
+    overlay.className = 'azb-confirm-overlay';
+    overlay.innerHTML = '<div class="azb-confirm" role="alertdialog" aria-modal="true" aria-labelledby="azbConfirmTitle">' +
+      '<div class="azb-confirm-icon ' + (danger ? 'is-danger' : '') + '" aria-hidden="true">' + (danger ? '!' : '?') + '</div>' +
+      '<div class="azb-confirm-body"><h3 id="azbConfirmTitle"></h3><p></p></div>' +
+      '<div class="azb-confirm-actions"><button type="button" class="btn btn-outline" data-no></button>' +
+      '<button type="button" class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + '" data-yes></button></div></div>';
+    overlay.querySelector('h3').textContent = opts.title;
+    overlay.querySelector('p').textContent = opts.message;
+    overlay.querySelector('[data-no]').textContent = opts.cancel;
+    overlay.querySelector('[data-yes]').textContent = opts.ok;
+    const previous = document.activeElement;
+    const done = (value) => {
+      document.removeEventListener('keydown', onKey, true);
+      overlay.remove();
+      if (previous && previous.focus) previous.focus();
+      resolve(value);
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); done(false); }
+      else if (event.key === 'Tab') {
+        const btns = overlay.querySelectorAll('button');
+        const first = btns[0], last = btns[btns.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    overlay.addEventListener('click', (event) => { if (event.target === overlay) done(false); });
+    overlay.querySelector('[data-no]').addEventListener('click', () => done(false));
+    overlay.querySelector('[data-yes]').addEventListener('click', () => done(true));
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+    overlay.querySelector('[data-yes]').focus();
+  });
+  window.azbConfirm = askConfirm;
+
   document.querySelectorAll('[data-confirm]').forEach((element) => {
     element.addEventListener('click', (event) => {
+      if (approved.has(element)) { approved.delete(element); return; }
+      event.preventDefault();
       const message = element.getAttribute('data-confirm') || 'Bạn có chắc chắn muốn tiếp tục?';
-      if (!window.confirm(message)) event.preventDefault();
+      const danger = /xóa|xoá|hoàn tác|không thể/i.test(message + ' ' + (element.getAttribute('data-confirm-title') || ''));
+      askConfirm({
+        message,
+        danger,
+        title: element.getAttribute('data-confirm-title') || (danger ? 'Xác nhận xoá' : 'Xác nhận thao tác'),
+        ok: element.getAttribute('data-confirm-ok') || (/xóa|xoá/i.test(message) ? 'Xoá' : 'Xác nhận'),
+        cancel: 'Huỷ',
+      }).then((yes) => {
+        if (!yes) return;
+        approved.add(element);
+        const form = element.tagName === 'FORM' ? element : element.form || element.closest('form');
+        if (element.tagName === 'FORM') element.requestSubmit();
+        else if (element.type === 'submit' && form) form.requestSubmit(element);
+        else element.click();
+      });
     });
   });
 

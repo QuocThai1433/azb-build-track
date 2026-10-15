@@ -1,0 +1,32 @@
+{#- Centered dialog for "denied" flash messages (403). Usage: {% include '_denied_modal.html' %} with `messages` set. -#}
+{% set denied = [] %}{% for category, message in messages %}{% if category == 'denied' %}{% if denied.append(message) %}{% endif %}{% endif %}{% endfor %}
+{% if denied %}
+<style>
+
+.denied-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(21, 36, 59, .45); }
+.denied-box { width: min(420px, 100%); background: #fff; border-radius: 16px; padding: 28px 24px 22px; text-align: center; box-shadow: 0 24px 60px rgba(21, 36, 59, .28); }
+.denied-icon { width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 50%; display: grid; place-items: center; background: #fff0f0; color: #c34447; font-size: 28px; font-weight: 800; }
+.denied-box h2 { margin: 0 0 8px; font-size: 18px; color: #15243b; }
+.denied-box p { margin: 0 0 20px; color: #50647c; font-size: 14px; line-height: 1.5; }
+</style>
+<div class="denied-overlay" id="deniedOverlay" role="alertdialog" aria-modal="true" aria-labelledby="deniedTitle" aria-describedby="deniedText">
+  <div class="denied-box">
+    <div class="denied-icon" aria-hidden="true">!</div>
+    <h2 id="deniedTitle">Không thể thực hiện</h2>
+    <p id="deniedText">{{ denied|join(' ') }}</p>
+    <button type="button" class="btn btn-primary" id="deniedClose">Đã hiểu</button>
+  </div>
+</div>
+<script>
+(function () {
+  var overlay = document.getElementById('deniedOverlay');
+  var close = document.getElementById('deniedClose');
+  function hide() { if (overlay) overlay.remove(); document.removeEventListener('keydown', onKey); }
+  function onKey(e) { if (e.key === 'Escape') hide(); }
+  close.addEventListener('click', hide);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) hide(); });
+  document.addEventListener('keydown', onKey);
+  close.focus();
+})();
+</script>
+{% endif %}

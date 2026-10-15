@@ -13,7 +13,7 @@
 </head>
 <body class="public-body">
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}<div class="flash-stack public-flash">{% for category, message in messages %}<div class="flash {{ category }}"><span>{{ '✓' if category=='success' else '!' }}</span><div>{{ message }}</div></div>{% endfor %}</div>{% endif %}
+    {% include '_denied_modal.html' %}{% set shown = messages|rejectattr(0, 'equalto', 'denied')|list %}{% if shown %}<div class="flash-stack public-flash">{% for category, message in shown %}<div class="flash {{ category }}"><span>{{ '✓' if category=='success' else '!' }}</span><div>{{ message }}</div></div>{% endfor %}</div>{% endif %}
   {% endwith %}
   {% block content %}{% endblock %}
 </body>

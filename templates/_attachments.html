@@ -1,0 +1,19 @@
+{% macro attach(entity_type, entity_id, files) %}
+<details class="attach-box">
+  <summary><span aria-hidden="true">📎</span> Đính kèm{% if files %} ({{ files|length }}){% endif %}</summary>
+  {% if files %}<div class="attach-grid">
+    {% for a in files %}<div class="attach-item">
+      {% if a.filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')) %}<a href="{{ url_for('attachment_download', attachment_id=a.id) }}" target="_blank" rel="noopener"><img src="{{ url_for('attachment_download', attachment_id=a.id) }}" alt="{{ a.filename }}" loading="lazy"></a>
+      {% else %}<a class="attach-doc" href="{{ url_for('attachment_download', attachment_id=a.id) }}" target="_blank" rel="noopener">📄</a>{% endif %}
+      <a class="attach-name" href="{{ url_for('attachment_download', attachment_id=a.id) }}" target="_blank" rel="noopener" title="{{ a.filename }}">{{ a.filename }}</a>
+      <small>{{ (a.size_bytes / 1024)|round|int }} KB · {{ a.uploaded_by or '—' }}</small>
+      <form method="post" action="{{ url_for('attachment_delete', attachment_id=a.id) }}" data-confirm="Xóa tệp này?"><button class="inline-delete" aria-label="Xóa {{ a.filename }}">Xóa</button></form>
+    </div>{% endfor %}
+  </div>{% endif %}
+  {% if can('record.write') %}<form method="post" action="{{ url_for('attachment_upload') }}" enctype="multipart/form-data" class="attach-form">
+    <input type="hidden" name="entity_type" value="{{ entity_type }}"><input type="hidden" name="entity_id" value="{{ entity_id }}">
+    <input type="file" name="files" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" required>
+    <button class="btn btn-outline btn-sm">Tải lên</button>
+  </form>{% endif %}
+</details>
+{% endmacro %}

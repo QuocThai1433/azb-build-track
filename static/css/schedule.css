@@ -1,0 +1,32 @@
+/* Schedule control: Gantt critical path, baseline, today line and dependency arrows. */
+.gantt-grid { position: relative; }
+.gantt-bar-critical { background: #d94a58 !important; }
+.gantt-dot.baseline { background: #8a94a6; }
+.gantt-baseline-bar { position: absolute; bottom: 5px; height: 4px; border-radius: 2px; background: #8a94a6; z-index: 1; opacity: .85; }
+.gantt-today { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed #ec6577; z-index: 3; pointer-events: none; }
+svg.gantt-links { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 5; overflow: visible; }
+.muted { color: #78869b; }
+
+/* Attachments on diary, HSSE and risk records */
+.attach-box { margin-top: 6px; font-size: 12px; }
+.attach-box summary { cursor: pointer; color: #365fe5; list-style: none; }
+.attach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; margin: 8px 0; }
+.attach-item { display: flex; flex-direction: column; gap: 2px; border: 1px solid #e3e9f2; border-radius: 10px; padding: 6px; background: #fff; }
+.attach-item img { width: 100%; height: 76px; object-fit: cover; border-radius: 6px; display: block; }
+.attach-doc { display: grid; place-items: center; height: 76px; font-size: 28px; background: #f3f6fb; border-radius: 6px; }
+.attach-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #263a57; }
+.attach-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+
+/* Hộp xác nhận dùng chung */
+.azb-confirm-overlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;background:rgba(23,43,77,.45);backdrop-filter:blur(2px);opacity:0;transition:opacity .15s ease}
+.azb-confirm-overlay.show{opacity:1}
+.azb-confirm{width:min(440px,100%);background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(23,43,77,.28);padding:24px 24px 18px;display:grid;grid-template-columns:44px 1fr;gap:4px 16px;transform:translateY(8px) scale(.98);transition:transform .15s ease}
+.azb-confirm-overlay.show .azb-confirm{transform:none}
+.azb-confirm-icon{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:800;background:var(--blue-bg);color:var(--blue)}
+.azb-confirm-icon.is-danger{background:var(--red-bg);color:var(--red)}
+.azb-confirm-body h3{margin:2px 0 6px;font-size:16px;color:var(--navy)}
+.azb-confirm-body p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55}
+.azb-confirm-actions{grid-column:1 / -1;display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}
+.azb-confirm-actions .btn{min-width:88px}
+.azb-confirm-actions .btn-danger{background:var(--red);border-color:var(--red);color:#fff}
+.azb-confirm-actions .btn-danger:hover{filter:brightness(.92)}

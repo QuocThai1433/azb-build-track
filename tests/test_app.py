@@ -975,7 +975,7 @@ def test_legacy_database_is_upgraded_without_losing_data(tmp_path):
     assert result.returncode == 0, result.stderr
 
     con = sqlite3.connect(db_file)
-    assert con.execute("select version_num from alembic_version").fetchone() == ("0005",)
+    assert con.execute("select version_num from alembic_version").fetchone() == ("0007",)
     assert con.execute("select count(*) from import_aliases").fetchone() == (0,)
     assert con.execute("select title, priority, project_id from tasks").fetchall() == [
         ("Việc cũ chưa có cột priority", "Trung bình", 1)]

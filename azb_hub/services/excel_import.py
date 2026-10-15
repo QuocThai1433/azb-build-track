@@ -80,7 +80,9 @@ def _apply_tasks(db: Session, project_id: int, ep: EntityPlan, stats: dict[str, 
     for t in old_rows:
         by_title.setdefault(norm(t.title), snapshot[t.id])
 
+    keep = _capture_schedule_links(db, project_id, old_rows)
     db.execute(delete(Task).where(Task.project_id == project_id))
+    added: list[tuple[int | None, Task]] = []
     for row in ep.rows:
         old = None
         if row.get("source_id") is not None:
@@ -95,15 +97,54 @@ def _apply_tasks(db: Session, project_id: int, ep: EntityPlan, stats: dict[str, 
         if not values["task_type"]:
             values["task_type"] = "Chi tiết"
         user = {k: old[k] for k in TASK_USER_FIELDS} if old else {}
-        db.add(Task(project_id=project_id, **values,
+        task = Task(project_id=project_id, **values,
                     actual_progress=user.get("actual_progress") or 0,
                     actual_status=user.get("actual_status") or "Chưa cập nhật",
                     owner=user.get("owner") or "",
                     actual_start_date=user.get("actual_start_date"),
                     actual_end_date=user.get("actual_end_date"),
                     updated_at=user.get("updated_at"),
-                    priority=user.get("priority") or "Trung bình"))
+                    priority=user.get("priority") or "Trung bình",
+                    weight=keep["weights"].get(values.get("source_id"), 1.0))
+        db.add(task)
+        added.append((values.get("source_id"), task))
+    _restore_schedule_links(db, project_id, keep, added)
     return len(ep.rows)
+
+
+def _capture_schedule_links(db: Session, project_id: int, old_rows: list[Task]) -> dict[str, Any]:
+    """Dependencies, baselines and weights of the tasks that are about to be replaced, keyed by WBS id
+    (source_id), so an Excel re-import does not wipe the schedule control data."""
+    from ..models import BaselineTask, TaskDependency
+    src = {t.id: t.source_id for t in old_rows if t.source_id is not None}
+    deps = [(src[d.predecessor_id], src[d.successor_id], d.dep_type, d.lag_days)
+            for d in db.scalars(select(TaskDependency).where(TaskDependency.project_id == project_id))
+            if d.predecessor_id in src and d.successor_id in src]
+    baselines = [(b.baseline_id, src[b.task_id], b.start_date, b.end_date, b.weight)
+                 for b in db.scalars(select(BaselineTask).where(BaselineTask.task_id.in_(list(src) or [-1])))]
+    weights = {t.source_id: t.weight if t.weight is not None else 1.0 for t in old_rows if t.source_id is not None}
+    return {"deps": deps, "baselines": baselines, "weights": weights}
+
+
+def _restore_schedule_links(db: Session, project_id: int, keep: dict[str, Any],
+                            added: list[tuple[int | None, Task]]) -> None:
+    from ..models import BaselineTask, TaskDependency
+    if not keep["deps"] and not keep["baselines"]:
+        return
+    db.flush()
+    new_id = {sid: t.id for sid, t in added if sid is not None}
+    seen: set[tuple[int, int]] = set()
+    for p, s_, ty, lag in keep["deps"]:
+        if p in new_id and s_ in new_id and (new_id[p], new_id[s_]) not in seen:
+            seen.add((new_id[p], new_id[s_]))
+            db.add(TaskDependency(project_id=project_id, predecessor_id=new_id[p], successor_id=new_id[s_],
+                                  dep_type=ty, lag_days=lag))
+    done: set[tuple[int, int]] = set()
+    for baseline_id, sid, start, end, weight in keep["baselines"]:
+        if sid in new_id and (baseline_id, new_id[sid]) not in done:
+            done.add((baseline_id, new_id[sid]))
+            db.add(BaselineTask(baseline_id=baseline_id, task_id=new_id[sid], start_date=start, end_date=end,
+                                weight=weight))
 
 
 def _apply_risks(db: Session, project_id: int, ep: EntityPlan) -> int:

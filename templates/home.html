@@ -16,9 +16,8 @@
   <a class="home-brand" href="{{ url_for('home') }}"><span class="brand-mark">AZB</span><span><strong>AZB Project Hub</strong><small>Quản lý kế hoạch thi công</small></span></a>
   <div class="home-user">
     <span class="home-hello">Xin chào, <b>{{ current_user.full_name or current_user.username }}</b> · {{ role_label }}</span>
-{% if can('users.manage') %}<a class="notif-btn" href="{{ url_for('users_list') }}" title="{{ pending_users }} tài khoản đăng ký chờ duyệt" aria-label="Tài khoản chờ duyệt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c-4.7 0-8.5 3.4-8.5 7.7 0 2.4 1.2 4.5 3.1 5.9V20l3-1.7c.8.2 1.5.3 2.4.3 4.7 0 8.5-3.4 8.5-7.7S16.7 3.5 12 3.500Z"/><path d="m7.5 12.8 3-3.2 2 2 3-2.800"/></svg>{% if pending_users %}<span class="notif-count">{{ pending_users if pending_users < 100 else '99+' }}</span>{% endif %}</a>{% endif %}
     {% if can('audit.view') %}<a class="btn btn-ghost btn-sm" href="{{ url_for('audit_logs') }}">Nhật ký</a>{% endif %}
-    {% if can('users.manage') %}<a class="btn btn-ghost btn-sm" href="{{ url_for('users_list') }}">Tài khoản</a>{% endif %}
+    {% if can('users.manage') %}<a class="btn btn-ghost btn-sm btn-with-count" href="{{ url_for('users_list') }}"{% if pending_users %} title="{{ pending_users }} tài khoản đăng ký chờ duyệt"{% endif %}>Tài khoản{% if pending_users %}<span class="btn-count" aria-label="{{ pending_users }} tài khoản chờ duyệt">{{ pending_users if pending_users < 100 else '99+' }}</span>{% endif %}</a>{% endif %}
     {% if can('project.create') %}<a class="btn btn-ghost btn-sm" href="{{ url_for('projects_list') }}">Quản lý dự án</a>{% endif %}
     <form method="post" action="{{ url_for('logout') }}"><button class="btn btn-outline btn-sm" type="submit">Đăng xuất</button></form>
   </div>

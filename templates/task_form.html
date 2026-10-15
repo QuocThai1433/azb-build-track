@@ -11,6 +11,7 @@
 <div class="field"><label>Ngày kết thúc kế hoạch</label><input type="date" name="end_date" value="{{ item.end_date if item and item.end_date else '' }}"></div>
 <div class="field"><label>Thời lượng kế hoạch (ngày)</label><input type="number" step="1" min="0" name="planned_days" value="{{ (item.planned_days or 0)|round|int if item else 0 }}"></div>
 <div class="field"><label>Dự trữ thời gian (ngày)</label><input type="number" step="1" name="float_days" value="{{ (item.float_days or 0)|round|int if item else 0 }}"></div>
+<div class="field"><label>Trọng số trong dự án</label><input type="number" step="0.1" min="0" name="weight" value="{{ (item.weight if item and item.weight is not none else 1)|round(2) }}"><small>Dùng tính % tổng thể, đường cong S và EVM. Có thể nhập giá trị hợp đồng hoặc số công.</small></div>
 <div class="field"><label>Tiến độ kế hoạch (%)</label><input type="number" step="0.1" min="0" max="100" name="plan_progress" value="{{ ((item.plan_progress or 0)*100)|round(1) if item else 0 }}"></div>
 <div class="field"><label>Trạng thái theo kế hoạch</label><input name="plan_status" value="{{ item.plan_status if item else '' }}" placeholder="Trạng thái trong file kế hoạch"></div>
 <div class="field full"><label>Ghi chú</label><textarea name="notes" rows="3" placeholder="Điều kiện thi công, ghi chú từ tư vấn...">{{ item.notes if item else '' }}</textarea></div></div></section>

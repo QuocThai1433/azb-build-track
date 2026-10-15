@@ -39,6 +39,7 @@ class Project(Base):
     construction_status: Mapped[str] = mapped_column(Text, nullable=False, default="dang_thi_cong",
                                                      server_default="dang_thi_cong")
     created_at: Mapped[str | None] = mapped_column(Text)
+    work_days: Mapped[str] = mapped_column(Text, nullable=False, default="0,1,2,3,4,5", server_default="0,1,2,3,4,5")
 
 
 class Task(Base):
@@ -68,6 +69,7 @@ class Task(Base):
     actual_end_date: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[str | None] = mapped_column(Text)
     priority: Mapped[str | None] = mapped_column(Text, default="Trung bình", server_default="Trung bình")
+    weight: Mapped[float | None] = mapped_column(REAL, default=1.0, server_default="1")
 
 
 class Resource(Base):
@@ -264,3 +266,83 @@ class AuditLog(Base):
     ip_address: Mapped[str | None] = mapped_column(Text)
     user_agent: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+
+
+class Attachment(Base):
+    """A photo or document attached to a diary entry, HSSE record or risk. The bytes live in
+    instance/attachments/<project_id>/<stored_name>; this row is the index."""
+    __tablename__ = "attachments"
+    __table_args__ = (Index("idx_attachments_entity", "entity_type", "entity_id"), {"sqlite_autoincrement": True})
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = _project_fk("attachments")
+    entity_type: Mapped[str] = mapped_column(Text, nullable=False)      # diary | safety_logs | risks
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    stored_name: Mapped[str] = mapped_column(Text, nullable=False)
+    content_type: Mapped[str | None] = mapped_column(Text)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    uploaded_by: Mapped[str | None] = mapped_column(Text)
+    uploaded_at: Mapped[str | None] = mapped_column(Text)
+
+
+class TaskDependency(Base):
+    """predecessor -> successor. dep_type: FS (finish-start), SS, FF, SF; lag_days in working days."""
+    __tablename__ = "task_dependencies"
+    __table_args__ = (UniqueConstraint("predecessor_id", "successor_id", name="uq_task_dependency"),
+                      {"sqlite_autoincrement": True})
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = _project_fk("task_dependencies")
+    predecessor_id: Mapped[int] = mapped_column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
+    successor_id: Mapped[int] = mapped_column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False,
+                                              index=True)
+    dep_type: Mapped[str] = mapped_column(Text, nullable=False, default="FS", server_default="FS")
+    lag_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+
+
+class Baseline(Base):
+    """A frozen copy of the planned dates (the original plan) taken at one moment."""
+    __tablename__ = "baselines"
+    __table_args__ = {"sqlite_autoincrement": True}
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = _project_fk("baselines")
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=false())
+
+
+class BaselineTask(Base):
+    __tablename__ = "baseline_tasks"
+
+    baseline_id: Mapped[int] = mapped_column(Integer, ForeignKey("baselines.id", ondelete="CASCADE"),
+                                             primary_key=True)
+    task_id: Mapped[int] = mapped_column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), primary_key=True)
+    start_date: Mapped[str | None] = mapped_column(Text)
+    end_date: Mapped[str | None] = mapped_column(Text)
+    weight: Mapped[float | None] = mapped_column(REAL, default=1.0, server_default="1")
+
+
+class Holiday(Base):
+    __tablename__ = "holidays"
+    __table_args__ = (UniqueConstraint("project_id", "day", name="uq_holiday_day"), {"sqlite_autoincrement": True})
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = _project_fk("holidays")
+    day: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[str | None] = mapped_column(Text, default="", server_default="")
+
+
+class ProgressSnapshot(Base):
+    """One row per project per day: planned and actual progress (0-1) so the S-curve keeps its history."""
+    __tablename__ = "progress_snapshots"
+    __table_args__ = (UniqueConstraint("project_id", "day", name="uq_snapshot_day"), {"sqlite_autoincrement": True})
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    project_id: Mapped[int] = _project_fk("progress_snapshots")
+    day: Mapped[str] = mapped_column(Text, nullable=False)
+    planned: Mapped[float] = mapped_column(REAL, nullable=False, default=0.0, server_default="0")
+    actual: Mapped[float] = mapped_column(REAL, nullable=False, default=0.0, server_default="0")
+    actual_cost: Mapped[float] = mapped_column(REAL, nullable=False, default=0.0, server_default="0")

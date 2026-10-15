@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from ..db import DB_PATH
@@ -47,3 +47,23 @@ def list_backups(limit: int = 5) -> list[dict]:
              "size_mb": round(f.stat().st_size / (1024 * 1024), 2),
              "time": datetime.fromtimestamp(f.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")}
             for f in files]
+
+
+AUTO_LABEL = "tu_dong"
+AUTO_KEEP = 14                      # newest automatic backups kept; manual and pre-upgrade ones are never pruned
+AUTO_INTERVAL_HOURS = 24
+
+
+def backup_if_due(now: datetime | None = None) -> Path | None:
+    """Make an automatic backup when the newest one is older than AUTO_INTERVAL_HOURS, then prune old ones."""
+    now = now or datetime.now()
+    folder = backups_dir()
+    autos = sorted(folder.glob(f"{DB_PATH.stem}_{AUTO_LABEL}_*.db"), key=lambda p: p.stat().st_mtime) \
+        if folder.exists() else []
+    if autos and now - datetime.fromtimestamp(autos[-1].stat().st_mtime) < timedelta(hours=AUTO_INTERVAL_HOURS):
+        return None
+    created = create_backup(label=AUTO_LABEL)
+    autos = sorted(folder.glob(f"{DB_PATH.stem}_{AUTO_LABEL}_*.db"), key=lambda p: p.stat().st_mtime)
+    for old in autos[:-AUTO_KEEP]:
+        old.unlink(missing_ok=True)
+    return created
