@@ -56,17 +56,38 @@ def gantt_context(db: Session, project_id: int) -> dict[str, Any]:
         end = date.fromisoformat(project.end_date)
     span = max(1, (end - start).days)
 
+    from . import control
+    sched = control.schedule(db, project_id)
+    baseline = control.active_baseline(db, project_id)
+    base = control.baseline_dates(db, baseline)
+    has_links = bool(sched["deps"]) and not sched["error"]
+
+    def place(a: str | None, b: str | None) -> tuple[float, float]:
+        try:
+            s, e = date.fromisoformat(a), date.fromisoformat(b)
+            left = max(0, min(100, (s - start).days / span * 100))
+            return left, max(0.8, min(100 - left, ((e - s).days + 1) / span * 100))
+        except Exception:
+            return 0, 0
+
     bars = []
     for item in items:
-        try:
-            s = date.fromisoformat(item.start_date)
-            e = date.fromisoformat(item.end_date)
-            left = max(0, min(100, (s - start).days / span * 100))
-            width = max(0.8, min(100 - left, ((e - s).days + 1) / span * 100))
-        except Exception:
-            left = 0
-            width = 0
-        bars.append({"item": item, "left": left, "width": width})
+        left, width = place(item.start_date, item.end_date)
+        entry = {"item": item, "left": left, "width": width, "critical": False, "shift": 0,
+                 "base_left": 0, "base_width": 0, "base_end": None, "slip": 0}
+        r = sched["result"].get(item.id)
+        if r is not None and has_links:
+            entry["critical"] = r.critical
+            entry["shift"] = r.shift
+        b = base.get(item.id)
+        if b is not None and b.start_date and b.end_date:
+            entry["base_left"], entry["base_width"] = place(b.start_date, b.end_date)
+            entry["base_end"] = b.end_date
+            try:
+                entry["slip"] = (date.fromisoformat(item.end_date) - date.fromisoformat(b.end_date)).days
+            except Exception:
+                pass
+        bars.append(entry)
 
     months = []
     cursor = date(start.year, start.month, 1)
@@ -80,4 +101,8 @@ def gantt_context(db: Session, project_id: int) -> dict[str, Any]:
             "width": max(0.8, (month_end - month_start).days / span * 100),
         })
         cursor = next_month
-    return {"items": bars, "months": months, "start": start, "end": end}
+    deps = [{"p": d.predecessor_id, "s": d.successor_id, "t": d.dep_type} for d in sched["deps"]]
+    today = date.today()
+    today_left = (today - start).days / span * 100 if start <= today <= end else None
+    return {"items": bars, "months": months, "start": start, "end": end, "deps": deps, "baseline": baseline,
+            "has_links": has_links, "today_left": today_left}

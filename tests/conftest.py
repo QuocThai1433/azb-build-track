@@ -12,6 +12,7 @@ os.environ["AZB_DB_PATH"] = str(Path(_TMP) / "test.db")
 ADMIN_PASSWORD = "Admin-test-123"
 os.environ["AZB_ADMIN_PASSWORD"] = ADMIN_PASSWORD
 os.environ["AZB_ADMIN_USERNAME"] = "admin"
+os.environ["AZB_AUTO_BACKUP"] = "0"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

@@ -299,3 +299,27 @@ def test_audit_export_is_a_workbook_and_is_logged(client):
     assert [c.value for c in ws[1]][:3] == ["Thời gian", "Người dùng", "Hành động"]
     assert ws.max_row > 1 and all(row[2].value == "create" for row in ws.iter_rows(min_row=2))
     assert _audit_count("export", entity_type="audit_logs") == before + 1
+
+
+def test_admin_can_delete_user_but_not_self_or_last_admin(client):
+    victim = _make_user("xoa_toi", "nhan_vien")
+    r = client.post(f"/users/{victim.id}/delete")
+    assert r.status_code == 303
+    with SessionLocal() as db:
+        assert repo.get_user(db, victim.id) is None
+        assert any(l.action == "delete" and l.entity_type == "users" and l.entity_id == victim.id
+                   for l in repo.list_audit_logs(db, limit=20))
+        admin = repo.get_user_by_username(db, "admin")
+    client.post(f"/users/{admin.id}/delete")                    # cannot delete yourself
+    with SessionLocal() as db:
+        assert repo.get_user(db, admin.id) is not None
+    assert client.post("/users/999999/delete").status_code == 404
+
+
+def test_staff_cannot_delete_users(client):
+    victim = _make_user("khong_xoa", "nhan_vien")
+    _make_user("nv_khong_xoa", "nhan_vien")
+    c = _login("nv_khong_xoa")
+    assert c.post(f"/users/{victim.id}/delete").status_code == 403
+    with SessionLocal() as db:
+        assert repo.get_user(db, victim.id) is not None

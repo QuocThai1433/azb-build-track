@@ -7,6 +7,6 @@
 <td>{% if u.role == 'nhan_vien' %}{{ counts[u.id] }}{% else %}Tất cả{% endif %}</td>
 <td>{{ (u.last_login_at or '')[:16]|replace('T',' ') or '—' }}</td>
 <td>{% if u.is_active %}<span class="tag tag-teal">Hoạt động</span>{% else %}<span class="tag">Đã khóa</span>{% endif %}</td>
-<td><a class="btn btn-outline btn-sm" href="{{ url_for('user_edit', user_id=u.id) }}">Sửa</a></td></tr>{% endfor %}</tbody>
+<td style="display:flex;gap:6px"><a class="btn btn-outline btn-sm" href="{{ url_for('user_edit', user_id=u.id) }}">Sửa</a>{% if u.id != current_user.id %}<form method="post" action="{{ url_for('user_delete', user_id=u.id) }}" data-confirm="Xóa tài khoản “{{ u.username }}”? Việc này không thể hoàn tác."><button class="btn btn-ghost btn-sm" style="color:#c34447">Xóa</button></form>{% endif %}</td></tr>{% endfor %}</tbody>
 </table></div></section>
 {% endblock %}

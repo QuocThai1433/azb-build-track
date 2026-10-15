@@ -105,3 +105,23 @@ async def user_save(request: Request, user_id: int, db: Session = Depends(get_db
         flash(request, "Đã lưu tài khoản.", "success")
         return redirect(request, "users_list")
     return _form_page(request, db, user)
+
+
+@router.post("/users/{user_id}/delete", name="user_delete")
+def user_delete(request: Request, user_id: int, db: Session = Depends(get_db)):
+    user = or_404(repo.get_user(db, user_id))
+    me: User = request.state.user
+    other_admins = [u for u in repo.list_users(db) if u.role == auth.ADMIN and u.is_active and u.id != user.id]
+    if user.id == me.id:
+        flash(request, "Bạn không thể xóa chính tài khoản của mình.", "error")
+    elif user.role == auth.ADMIN and not other_admins:
+        flash(request, "Không thể xóa quản trị viên cuối cùng của hệ thống.", "error")
+    else:
+        audit.add(db, "delete", "users", user.id,
+                  old={"username": user.username, "full_name": user.full_name, "role": user.role,
+                       "projects": sorted(repo.member_project_ids(db, user.id))})
+        db.delete(user)                       # project assignments go with it (ON DELETE CASCADE)
+        db.commit()
+        flash(request, f"Đã xóa tài khoản “{user.username}”. Nhật ký hoạt động của tài khoản này vẫn được giữ.",
+              "success")
+    return redirect(request, "users_list")

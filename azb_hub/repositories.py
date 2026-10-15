@@ -135,6 +135,8 @@ def delete_project(db: Session, project_id: int) -> None:
         audit.add(db, "delete", "project", project_id, project_id, old=to_dict(project))
     db.execute(delete(Project).where(Project.id == project_id))
     db.commit()
+    from .services import attachments
+    attachments.remove_project_files(project_id)
     slugs.clear_cache()
 
 

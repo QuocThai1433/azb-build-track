@@ -1,0 +1,100 @@
+{% extends 'base.html' %}{% block content %}
+{% set m = metrics %}{% set pts = curve.points %}
+<div class="page-heading heading-row"><div><div class="eyebrow">KIỂM SOÁT TIẾN ĐỘ</div><h1>Đường găng, baseline và EVM</h1><p class="page-subtitle">Phụ thuộc giữa công việc, dự báo hoàn thành, đường cong S và cảnh báo của dự án.</p></div><div class="heading-actions"><a class="btn btn-outline" href="{{ url_for('gantt') }}">Biểu đồ Gantt</a><a class="btn btn-outline" href="{{ url_for('tasks_list') }}">Danh sách công việc</a></div></div>
+
+{% if sched.error %}<div class="alert alert-error">{{ sched.error }} Hãy xóa bớt phụ thuộc bên dưới.</div>{% endif %}
+
+<div class="finance-cards">
+  <div class="finance-card"><div class="finance-label">TIẾN ĐỘ KẾ HOẠCH / THỰC TẾ</div><strong>{{ (m.planned*100)|round(1) }}% / {{ (m.actual*100)|round(1) }}%</strong><small>Có trọng số theo từng công việc</small></div>
+  <div class="finance-card"><div class="finance-label">SPI (TIẾN ĐỘ)</div><strong>{{ '%.2f'|format(m.spi) if m.spi is not none else '—' }}</strong><small>{% if m.spi is none %}Chưa đủ dữ liệu{% elif m.spi < 0.9 %}Chậm so với kế hoạch{% elif m.spi < 1 %}Hơi chậm{% else %}Đúng hoặc vượt kế hoạch{% endif %}</small></div>
+  <div class="finance-card"><div class="finance-label">CPI (CHI PHÍ)</div><strong>{{ '%.2f'|format(m.cpi) if m.cpi is not none else '—' }}</strong><small>{% if m.cpi is none %}Chưa có ngân sách hoặc thực chi{% elif m.cpi < 1 %}Chi cao hơn giá trị đạt được{% else %}Trong ngân sách{% endif %}</small></div>
+  <div class="finance-card"><div class="finance-label">HOÀN THÀNH DỰ BÁO</div><strong>{{ m.forecast_end.isoformat() if m.forecast_end else '—' }}</strong><small>{% if m.delay_days is none %}Cần có tiến độ thực tế{% elif m.delay_days > 0 %}Trễ {{ m.delay_days }} ngày so với kế hoạch{% elif m.delay_days < 0 %}Sớm {{ -m.delay_days }} ngày{% else %}Đúng kế hoạch{% endif %}</small></div>
+</div>
+
+<div class="panel" style="margin-top:16px;padding:18px 20px">
+  <div class="gantt-toolbar" style="padding:0 0 12px"><div><strong>ĐƯỜNG CONG S</strong><span>Kế hoạch (xanh) · Thực tế (xanh lá) · mỗi điểm là lũy kế tiến độ có trọng số</span></div></div>
+  {% if pts|length > 1 %}
+  {% set W = 760 %}{% set H = 220 %}
+  {% set ns = namespace(plan='', act='') %}
+  {% for p in pts %}{% set x = (loop.index0 / (pts|length - 1) * W)|round(1) %}
+    {% set ns.plan = ns.plan ~ x ~ ',' ~ ((H - p.planned * H)|round(1)) ~ ' ' %}
+    {% if p.actual is not none %}{% set ns.act = ns.act ~ x ~ ',' ~ ((H - p.actual * H)|round(1)) ~ ' ' %}{% endif %}
+  {% endfor %}
+  {% set today_x = ((curve.today - curve.start).days / curve.span * W)|round(1) if curve.today >= curve.start else 0 %}
+  <svg viewBox="-34 -8 {{ W + 48 }} {{ H + 34 }}" width="100%" role="img" aria-label="Đường cong S kế hoạch và thực tế">
+    {% for g in [0, 25, 50, 75, 100] %}<line x1="0" y1="{{ H - g/100*H }}" x2="{{ W }}" y2="{{ H - g/100*H }}" stroke="#e3e9f2"/><text x="-6" y="{{ H - g/100*H + 3 }}" font-size="10" text-anchor="end" fill="#78869b">{{ g }}%</text>{% endfor %}
+    <polyline points="{{ ns.plan }}" fill="none" stroke="#365fe5" stroke-width="2.5"/>
+    {% if ns.act %}<polyline points="{{ ns.act }}" fill="none" stroke="#12a99a" stroke-width="2.5"/>{% endif %}
+    {% if curve.start <= curve.today <= curve.end %}<line x1="{{ today_x }}" y1="0" x2="{{ today_x }}" y2="{{ H }}" stroke="#ec6577" stroke-dasharray="4 3"/><text x="{{ today_x + 4 }}" y="10" font-size="10" fill="#ec6577">Hôm nay</text>{% endif %}
+    <text x="0" y="{{ H + 16 }}" font-size="10" fill="#78869b">{{ curve.start.isoformat() }}</text>
+    <text x="{{ W }}" y="{{ H + 16 }}" font-size="10" text-anchor="end" fill="#78869b">{{ curve.end.isoformat() }}</text>
+  </svg>
+  {% else %}<p class="muted">Chưa đủ dữ liệu ngày của công việc để vẽ đường cong.</p>{% endif %}
+  <p class="muted" style="font-size:11px;margin:8px 0 0">Đường thực tế được ghi lại mỗi ngày có người mở trang này hoặc cập nhật công việc; các ngày trước khi bật tính năng sẽ chưa có điểm.</p>
+</div>
+
+<div class="finance-cards" style="margin-top:16px">
+  <div class="finance-card"><div class="finance-label">BAC · NGÂN SÁCH</div><strong>{{ m.bac|compact_money }}</strong><small>Tổng ngân sách chi phí</small></div>
+  <div class="finance-card"><div class="finance-label">PV · EV</div><strong>{{ m.pv|compact_money }} · {{ m.ev|compact_money }}</strong><small>Giá trị kế hoạch · giá trị đạt được</small></div>
+  <div class="finance-card"><div class="finance-label">AC · THỰC CHI</div><strong>{{ m.ac|compact_money }}</strong><small>Tổng thực chi đã ghi nhận</small></div>
+  <div class="finance-card"><div class="finance-label">EAC · DỰ BÁO CHI PHÍ</div><strong>{{ m.eac|compact_money if m.eac else '—' }}</strong><small>BAC / CPI</small></div>
+</div>
+
+<div class="panel" style="margin-top:16px;padding:18px 20px">
+  <div class="gantt-toolbar" style="padding:0 0 12px"><div><strong>CẢNH BÁO</strong><span>{{ alerts|length }} mục cần chú ý</span></div></div>
+  {% for a in alerts[:15] %}<div class="inline-note" style="margin-bottom:6px;{% if a.level=='danger' %}color:#a32d2d{% elif a.level=='warning' %}color:#854f0b{% endif %}">{{ a.text }}</div>{% else %}<p class="muted">Không có cảnh báo.</p>{% endfor %}
+  {% if alerts|length > 15 %}<p class="muted">… và {{ alerts|length - 15 }} cảnh báo khác.</p>{% endif %}
+</div>
+
+<div class="panel table-panel" style="margin-top:16px">
+  <div class="gantt-toolbar"><div><strong>CÔNG VIỆC TRÊN ĐƯỜNG GĂNG</strong><span>{{ critical|length }} công việc không còn dự trữ (tính theo lịch làm việc){% if sched.finish %} · hoàn thành theo CPM: {{ sched.finish.isoformat() }}{% endif %}</span></div></div>
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Công việc</th><th>Bắt đầu sớm</th><th>Kết thúc sớm</th><th>Thời lượng</th><th>Dự trữ</th><th>Đẩy lùi</th></tr></thead><tbody>
+  {% for s in critical %}{% set t = titles[s.task_id] %}<tr><td><strong>{{ t.title }}</strong><br><small>{{ t.category }}</small></td><td>{{ s.es.isoformat() }}</td><td>{{ s.ef.isoformat() }}</td><td>{{ s.duration }} ngày LV</td><td>{{ s.total_float }}</td><td>{% if s.shift > 0 %}+{{ s.shift }} ngày{% else %}—{% endif %}</td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Chưa có công việc trên đường găng. Hãy thêm phụ thuộc giữa các công việc bên dưới.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+
+<div class="panel table-panel" style="margin-top:16px">
+  <div class="gantt-toolbar"><div><strong>PHỤ THUỘC GIỮA CÔNG VIỆC</strong><span>{{ sched.deps|length }} quan hệ</span></div></div>
+  {% if can('record.write') %}
+  <form method="post" action="{{ url_for('dependency_add') }}" class="filter-bar" style="flex-wrap:wrap;gap:8px">
+    <select name="predecessor_id" required aria-label="Công việc đứng trước"><option value="">Công việc đứng trước…</option>{% for t in sched.tasks %}<option value="{{ t.id }}">{{ '%02d'|format(t.source_id or t.id) }} · {{ t.title[:60] }}</option>{% endfor %}</select>
+    <select name="dep_type" aria-label="Loại phụ thuộc"><option value="FS">FS · xong rồi mới bắt đầu</option><option value="SS">SS · cùng bắt đầu</option><option value="FF">FF · cùng kết thúc</option><option value="SF">SF · bắt đầu mới được kết thúc</option></select>
+    <input type="number" name="lag_days" value="0" step="1" style="width:90px" aria-label="Độ trễ (ngày làm việc)" title="Độ trễ (ngày làm việc), âm là chồng lấn">
+    <select name="successor_id" required aria-label="Công việc đứng sau"><option value="">Công việc đứng sau…</option>{% for t in sched.tasks %}<option value="{{ t.id }}">{{ '%02d'|format(t.source_id or t.id) }} · {{ t.title[:60] }}</option>{% endfor %}</select>
+    <button class="btn btn-primary">＋ Thêm phụ thuộc</button>
+  </form>{% endif %}
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Đứng trước</th><th>Loại</th><th>Độ trễ</th><th>Đứng sau</th><th></th></tr></thead><tbody>
+  {% set by_id = {} %}{% for t in sched.tasks %}{% if by_id.update({t.id: t}) %}{% endif %}{% endfor %}
+  {% for d in sched.deps %}<tr><td>{{ by_id[d.predecessor_id].title if d.predecessor_id in by_id else d.predecessor_id }}</td><td><span class="tag">{{ d.dep_type }}</span></td><td>{{ d.lag_days }}</td><td>{{ by_id[d.successor_id].title if d.successor_id in by_id else d.successor_id }}</td><td>{% if can('record.write') %}<form method="post" action="{{ url_for('dependency_delete', dep_id=d.id) }}"><button class="btn btn-ghost btn-sm">Xóa</button></form>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">Chưa có phụ thuộc nào.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+
+<div class="panel table-panel" style="margin-top:16px">
+  <div class="gantt-toolbar"><div><strong>BASELINE (KẾ HOẠCH GỐC)</strong><span>{% if baseline %}Đang so sánh với “{{ baseline.name }}”{% else %}Chưa chốt baseline{% endif %}</span></div></div>
+  {% if can('project.edit') %}<form method="post" action="{{ url_for('baseline_create') }}" class="filter-bar"><input name="name" placeholder="Tên baseline, ví dụ: Baseline hợp đồng"><button class="btn btn-primary">Chốt baseline từ kế hoạch hiện tại</button></form>{% endif %}
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Tên</th><th>Thời điểm</th><th>Người chốt</th><th></th></tr></thead><tbody>
+  {% for b in baselines %}<tr><td><strong>{{ b.name }}</strong>{% if b.is_active %} <span class="tag tag-teal">ĐANG DÙNG</span>{% endif %}</td><td>{{ b.created_at }}</td><td>{{ b.created_by or '—' }}</td><td style="display:flex;gap:6px">{% if can('project.edit') and not b.is_active %}<form method="post" action="{{ url_for('baseline_activate', baseline_id=b.id) }}"><button class="btn btn-outline btn-sm">Dùng so sánh</button></form>{% endif %}{% if can('record.delete') %}<form method="post" action="{{ url_for('baseline_delete', baseline_id=b.id) }}" ><button class="btn btn-ghost btn-sm" data-confirm="Xóa baseline này? Việc này không thể hoàn tác." data-confirm-title="Xóa baseline">Xóa</button></form>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">Chưa có baseline. Hãy chốt baseline khi kế hoạch được duyệt để theo dõi độ trượt.</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if variances %}<div class="table-wrap" style="margin-top:8px"><table class="data-table"><thead><tr><th>Công việc lệch baseline</th><th>Kết thúc gốc</th><th>Kết thúc hiện tại</th><th>Lệch (ngày)</th></tr></thead><tbody>
+  {% for v in variances[:15] %}<tr><td>{{ v.task.title }}</td><td>{{ v.baseline_end }}</td><td>{{ v.task.end_date }}</td><td><strong style="color:{% if v.days > 0 %}#a32d2d{% else %}#0f6e56{% endif %}">{{ '%+d'|format(v.days) }}</strong></td></tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+</div>
+
+<div class="panel" style="margin-top:16px;padding:18px 20px">
+  <div class="gantt-toolbar" style="padding:0 0 12px"><div><strong>LỊCH LÀM VIỆC VÀ NGÀY NGHỈ</strong><span>Dùng để tính thời lượng, đường găng và ngày dự trữ</span></div></div>
+  {% if can('project.edit') %}
+  <form method="post" action="{{ url_for('calendar_save') }}" class="filter-bar">
+    {% for v, label in weekdays %}<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" name="work_days" value="{{ v }}" {% if v in work_days %}checked{% endif %}> {{ label }}</label>{% endfor %}
+    <button class="btn btn-dark">Lưu ngày làm việc</button>
+  </form>
+  <form method="post" action="{{ url_for('holiday_add') }}" class="filter-bar">
+    <input type="date" name="day" required aria-label="Từ ngày"><input type="date" name="end_day" aria-label="Đến ngày (không bắt buộc)" title="Đến ngày (không bắt buộc)"><input name="name" placeholder="Tên ngày nghỉ, ví dụ: Tết Nguyên đán"><button class="btn btn-primary">＋ Thêm ngày nghỉ</button>
+  </form>{% endif %}
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+    {% for h in holidays %}<form method="post" action="{{ url_for('holiday_delete', holiday_id=h.id) }}" style="display:inline"><span class="tag">{{ h.day }}{% if h.name %} · {{ h.name }}{% endif %}</span>{% if can('project.edit') %} <button class="btn btn-ghost btn-sm" aria-label="Xóa ngày nghỉ {{ h.day }}">✕</button>{% endif %}</form>{% else %}<span class="muted">Chưa khai báo ngày nghỉ.</span>{% endfor %}
+  </div>
+</div>
+{% endblock %}

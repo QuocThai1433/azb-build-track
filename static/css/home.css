@@ -60,3 +60,7 @@
 .notif-btn svg{width:20px;height:20px;fill:currentColor;stroke:none}
 .notif-btn svg path:last-child{fill:none;stroke:#e4e6eb;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .notif-count{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e41e3f;color:#fff;font:700 11px/18px system-ui,sans-serif;text-align:center;box-sizing:border-box}
+
+/* pending-account count shown on the "Tài khoản" button */
+.btn-with-count{display:inline-flex;align-items:center;gap:6px}
+.btn-count{min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e41e3f;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}

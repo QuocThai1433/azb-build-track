@@ -5,6 +5,7 @@ __pycache__/
 instance/*.db
 instance/*.bak*
 instance/uploads/
+instance/attachments/
 _flask_backup/
 
 # chứa API key cục bộ
